@@ -146,7 +146,7 @@ export class GameState {
     return true
   }
 
-  endTurnWithFailure() {
+  endTurnWithFailure(reason = 'bust') {
     const player = this.getCurrentPlayer()
     const failureResult = player.failTurn()
 
@@ -160,6 +160,7 @@ export class GameState {
     return {
       type: 'failure',
       checkpointDrop: failureResult.checkpointDrop,
+      reason,
       player,
     }
   }
@@ -176,7 +177,7 @@ export class GameState {
     }
 
     if (player.score + turnScore > this.targetScore) {
-      return this.endTurnWithFailure()
+      return this.endTurnWithFailure('overshoot')
     }
 
     player.validateTurn(turnScore)

@@ -16,7 +16,7 @@
 - [x] Connecter GameState à DiceScorer pour calculer automatiquement le score d’un lancer <!-- pi-todo-md:id=8 -->
 - [x] Modéliser un tour complet (sélection des dés à garder, relance, arrêt) <!-- pi-todo-md:id=9 -->
 - [x] Valider les combinaisons complexes de scoring via tests (mélanges brelan + 1/5, etc.) <!-- pi-todo-md:id=10 -->
-- [ ] Ajouter la gestion explicite de la règle des 3 tours échoués après dépassement de 10 000 <!-- pi-todo-md:id=11 -->
+- [x] Ajouter la gestion explicite de la règle des 3 tours échoués après dépassement de 10 000 <!-- pi-todo-md:id=11 -->
 - [ ] Ajouter des tests de collisions en chaîne multi-joueurs <!-- pi-todo-md:id=12 -->
 - [ ] Ajouter des tests de reprise avec score transporté et dés restants <!-- pi-todo-md:id=13 -->
 - [ ] Ajouter une API claire pour récupérer l’état de partie sérialisable (snapshot JSON) <!-- pi-todo-md:id=14 -->
@@ -24,3 +24,4 @@
 - [ ] Renforcer la validation des entrées (dés invalides, paramètres incohérents) <!-- pi-todo-md:id=16 -->
 - [ ] Documenter l’architecture et les règles implémentées dans un README technique <!-- pi-todo-md:id=17 -->
 - [ ] Mettre en place la couverture de tests et un seuil minimum <!-- pi-todo-md:id=18 -->
+- [ ] Gérer un historique complet des paliers (checkpointHistory) pour supporter plusieurs chutes successives <!-- pi-todo-md:id=19 -->

@@ -77,8 +77,29 @@ describe('GameState', () => {
     const result = game.endTurnByStopping(200, 1)
 
     expect(result.type).toBe('failure')
+    expect(result.reason).toBe('overshoot')
     expect(alice.score).toBe(9900)
     expect(alice.failedTurnsInRow).toBe(1)
+  })
+
+  it('drops to previous checkpoint after 3 overshoots', () => {
+    const game = new GameState(['Alice', 'Bob'])
+    const alice = game.getCurrentPlayer()
+    alice.hasOpened = true
+    alice.previousCheckpointScore = 1200
+    alice.score = 1500
+
+    game.endTurnByStopping(9000, 1)
+    game.currentPlayerIndex = 0
+    game.endTurnByStopping(9000, 1)
+    game.currentPlayerIndex = 0
+    const thirdResult = game.endTurnByStopping(9000, 1)
+
+    expect(thirdResult.type).toBe('failure')
+    expect(thirdResult.reason).toBe('overshoot')
+    expect(thirdResult.checkpointDrop).toBe(true)
+    expect(alice.score).toBe(1200)
+    expect(alice.failedTurnsInRow).toBe(0)
   })
 
   it('exposes steal state for next player after validated stop', () => {
