@@ -24,4 +24,4 @@
 - [x] Renforcer la validation des entrées (dés invalides, paramètres incohérents) <!-- pi-todo-md:id=16 -->
 - [x] Documenter l’architecture et les règles implémentées dans un README technique <!-- pi-todo-md:id=17 -->
 - [x] Mettre en place la couverture de tests et un seuil minimum <!-- pi-todo-md:id=18 -->
-- [ ] Gérer un historique complet des paliers (checkpointHistory) pour supporter plusieurs chutes successives <!-- pi-todo-md:id=19 -->
+- [x] Gérer un historique complet des paliers (checkpointHistory) pour supporter plusieurs chutes successives <!-- pi-todo-md:id=19 -->

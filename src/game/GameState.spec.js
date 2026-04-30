@@ -103,7 +103,9 @@ describe('GameState', () => {
     game.startTurn()
     expect(() => game.playRoll([1, 2, 3, 4], [1])).toThrow('Expected 5 dice in this roll')
 
-    expect(() => game.playRoll([1, 2, 3, 4, 6], [])).toThrow('You must keep at least one scoring die')
+    expect(() => game.playRoll([1, 2, 3, 4, 6], [])).toThrow(
+      'You must keep at least one scoring die'
+    )
 
     expect(() => game.playRoll([1, 2, 3, 4, 6], [1, 1])).toThrow(
       'Kept dice must be a subset of rolled dice'
@@ -158,6 +160,7 @@ describe('GameState', () => {
     const game = new GameState(['Alice', 'Bob'])
     const alice = game.getCurrentPlayer()
     alice.hasOpened = true
+    alice.checkpointHistory = [0, 1200, 1500]
     alice.previousCheckpointScore = 1200
     alice.score = 1500
 
@@ -239,21 +242,56 @@ describe('GameState', () => {
     bob.hasOpened = true
     charlie.hasOpened = true
 
+    alice.checkpointHistory = [0, 500, 900]
     alice.score = 900
     alice.previousCheckpointScore = 500
 
+    bob.checkpointHistory = [0, 700, 1200]
     bob.score = 1200
     bob.previousCheckpointScore = 700
 
+    charlie.checkpointHistory = [0, 500, 700]
     charlie.score = 700
-    charlie.previousCheckpointScore = 300
+    charlie.previousCheckpointScore = 500
 
     const result = game.endTurnByStopping(300, 1)
 
     expect(result.type).toBe('validated')
     expect(alice.score).toBe(1200)
     expect(bob.score).toBe(700)
-    expect(charlie.score).toBe(300)
+    expect(charlie.score).toBe(500)
+  })
+
+  it('supports successive checkpoint drops for one player across collisions', () => {
+    const game = new GameState(['Alice', 'Bob', 'Charlie'])
+
+    const alice = game.players[0]
+    const bob = game.players[1]
+    const charlie = game.players[2]
+
+    alice.hasOpened = true
+    bob.hasOpened = true
+    charlie.hasOpened = true
+
+    bob.checkpointHistory = [0, 500, 800, 1200]
+    bob.score = 1200
+    bob.previousCheckpointScore = 800
+
+    alice.checkpointHistory = [0, 900, 1200]
+    alice.score = 900
+    alice.previousCheckpointScore = 900
+
+    game.currentPlayerIndex = 0
+    game.endTurnByStopping(300, 1)
+    expect(bob.score).toBe(800)
+
+    charlie.checkpointHistory = [0, 500, 800]
+    charlie.score = 500
+    charlie.previousCheckpointScore = 500
+
+    game.currentPlayerIndex = 2
+    game.endTurnByStopping(300, 1)
+    expect(bob.score).toBe(500)
   })
 
   it('starts next turn with carried score and remaining dice after a stop', () => {

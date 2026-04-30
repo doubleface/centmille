@@ -56,6 +56,7 @@ export class GameState {
         name: player.name,
         score: player.score,
         previousCheckpointScore: player.previousCheckpointScore,
+        checkpointHistory: [...player.checkpointHistory],
         hasOpened: player.hasOpened,
         failedTurnsInRow: player.failedTurnsInRow,
       })),
@@ -90,6 +91,9 @@ export class GameState {
       const player = game.players[index]
       player.score = playerSnapshot.score
       player.previousCheckpointScore = playerSnapshot.previousCheckpointScore
+      player.checkpointHistory = Array.isArray(playerSnapshot.checkpointHistory)
+        ? [...playerSnapshot.checkpointHistory]
+        : [0, playerSnapshot.score]
       player.hasOpened = playerSnapshot.hasOpened
       player.failedTurnsInRow = playerSnapshot.failedTurnsInRow
     }
@@ -299,7 +303,7 @@ export class GameState {
         if (candidate.score !== triggerPlayer.score) continue
 
         const previousScore = candidate.score
-        candidate.score = candidate.previousCheckpointScore
+        candidate.dropToPreviousCheckpoint()
 
         if (candidate.score !== previousScore) {
           queue.push(candidate)
