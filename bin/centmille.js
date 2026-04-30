@@ -24,9 +24,26 @@ Usage:
 Commands:
   new --players=Alice,Bob       Create a new game session
   load --file=./save.json       Load a game session from JSON
-  status                         Show current session status (placeholder)
+  status                         Show current session status
+  roll --dice=1,2,3,4,5         Register a roll
+  keep --dice=1,5               Keep scoring dice from current roll
+  stop                           Stop current turn
+  fail [--reason=bust]           Force a failed turn
+  save --file=./save.json        Save current session to JSON
+  quit                           Exit CLI session
   help                           Show this help
 `)
+}
+
+const parseDiceArg = (rawDice) => {
+  if (typeof rawDice !== 'string' || rawDice.trim().length === 0) return null
+
+  const dice = rawDice
+    .split(',')
+    .map((value) => Number.parseInt(value.trim(), 10))
+    .filter((value) => Number.isInteger(value))
+
+  return dice.length > 0 ? dice : null
 }
 
 const parsedArgs = parseKeyValueArgs(args)
@@ -67,7 +84,55 @@ switch (command) {
   }
 
   case 'status':
-    console.log('Status command is ready (implementation pending)')
+    console.log(JSON.stringify({ command: 'status' }, null, 2))
+    break
+
+  case 'roll': {
+    const dice = parseDiceArg(parsedArgs.dice)
+
+    if (!dice) {
+      console.error('Missing or invalid option: --dice=1,2,3,4,5')
+      process.exit(1)
+    }
+
+    console.log(JSON.stringify({ command: 'roll', dice }, null, 2))
+    break
+  }
+
+  case 'keep': {
+    const dice = parseDiceArg(parsedArgs.dice)
+
+    if (!dice) {
+      console.error('Missing or invalid option: --dice=1,5')
+      process.exit(1)
+    }
+
+    console.log(JSON.stringify({ command: 'keep', dice }, null, 2))
+    break
+  }
+
+  case 'stop':
+    console.log(JSON.stringify({ command: 'stop' }, null, 2))
+    break
+
+  case 'fail':
+    console.log(JSON.stringify({ command: 'fail', reason: parsedArgs.reason ?? 'bust' }, null, 2))
+    break
+
+  case 'save': {
+    const file = parsedArgs.file
+
+    if (typeof file !== 'string' || file.trim().length === 0) {
+      console.error('Missing required option: --file=./save.json')
+      process.exit(1)
+    }
+
+    console.log(JSON.stringify({ command: 'save', file }, null, 2))
+    break
+  }
+
+  case 'quit':
+    console.log(JSON.stringify({ command: 'quit' }, null, 2))
     break
 
   case 'help':
