@@ -11,6 +11,12 @@ let engine = null
 let pendingRollDice = null
 let isQuitting = false
 
+const handleUserError = (message, helpHint) => {
+  console.error(`Error: ${message}`)
+  if (helpHint) console.error(helpHint)
+  process.exitCode = 1
+}
+
 const parseKeyValueArgs = (rawArgs) => {
   const values = {}
 
@@ -70,7 +76,7 @@ const validateSavePayload = (payload) => {
 
 const ensureEngine = () => {
   if (engine) return true
-  console.error('No active game. Start one with: new --players=Alice,Bob')
+  handleUserError('No active game.', 'Start one with: new --players=Alice,Bob')
   return false
 }
 
@@ -135,8 +141,10 @@ const runCommand = async (inputCommand, inputArgs = []) => {
         const players = parsePlayersArg(parsedArgs.players)
 
         if (!players) {
-          console.error('Missing or invalid option: --players=Alice,Bob (at least 2)')
-          process.exitCode = 1
+          handleUserError(
+            'Missing or invalid option: --players=Alice,Bob (at least 2)',
+            'Example: centmille new --players=Alice,Bob'
+          )
           break
         }
 
@@ -150,8 +158,7 @@ const runCommand = async (inputCommand, inputArgs = []) => {
         const file = parsedArgs.file
 
         if (typeof file !== 'string' || file.trim().length === 0) {
-          console.error('Missing required option: --file=./save.json')
-          process.exitCode = 1
+          handleUserError('Missing required option: --file=./save.json')
           break
         }
 
@@ -169,10 +176,7 @@ const runCommand = async (inputCommand, inputArgs = []) => {
       }
 
       case 'status': {
-        if (!ensureEngine()) {
-          process.exitCode = 1
-          break
-        }
+        if (!ensureEngine()) break
 
         const snapshot = engine.dispatch({ type: 'snapshot' })
         console.log(formatStatus(snapshot, pendingRollDice))
@@ -180,16 +184,12 @@ const runCommand = async (inputCommand, inputArgs = []) => {
       }
 
       case 'roll': {
-        if (!ensureEngine()) {
-          process.exitCode = 1
-          break
-        }
+        if (!ensureEngine()) break
 
         const dice = parseDiceArg(parsedArgs.dice)
 
         if (!dice) {
-          console.error('Missing or invalid option: --dice=1,2,3,4,5')
-          process.exitCode = 1
+          handleUserError('Missing or invalid option: --dice=1,2,3,4,5')
           break
         }
 
@@ -203,22 +203,17 @@ const runCommand = async (inputCommand, inputArgs = []) => {
       }
 
       case 'keep': {
-        if (!ensureEngine()) {
-          process.exitCode = 1
-          break
-        }
+        if (!ensureEngine()) break
 
         const keptDice = parseDiceArg(parsedArgs.dice)
 
         if (!pendingRollDice) {
-          console.error('No staged roll. Use: roll --dice=... first')
-          process.exitCode = 1
+          handleUserError('No staged roll.', 'Use: roll --dice=... first')
           break
         }
 
         if (!keptDice) {
-          console.error('Missing or invalid option: --dice=1,5')
-          process.exitCode = 1
+          handleUserError('Missing or invalid option: --dice=1,5')
           break
         }
 
@@ -234,10 +229,7 @@ const runCommand = async (inputCommand, inputArgs = []) => {
       }
 
       case 'stop': {
-        if (!ensureEngine()) {
-          process.exitCode = 1
-          break
-        }
+        if (!ensureEngine()) break
 
         const result = engine.dispatch({ type: 'stop_turn' })
         pendingRollDice = null
@@ -246,10 +238,7 @@ const runCommand = async (inputCommand, inputArgs = []) => {
       }
 
       case 'fail': {
-        if (!ensureEngine()) {
-          process.exitCode = 1
-          break
-        }
+        if (!ensureEngine()) break
 
         const result = engine.dispatch({
           type: 'force_failure',
@@ -261,15 +250,11 @@ const runCommand = async (inputCommand, inputArgs = []) => {
       }
 
       case 'save': {
-        if (!ensureEngine()) {
-          process.exitCode = 1
-          break
-        }
+        if (!ensureEngine()) break
 
         const file = parsedArgs.file
         if (typeof file !== 'string' || file.trim().length === 0) {
-          console.error('Missing required option: --file=./save.json')
-          process.exitCode = 1
+          handleUserError('Missing required option: --file=./save.json')
           break
         }
 
@@ -306,13 +291,11 @@ const runCommand = async (inputCommand, inputArgs = []) => {
         break
 
       default:
-        console.error(`Unknown command: ${inputCommand}`)
+        handleUserError(`Unknown command: ${inputCommand}`)
         printHelp()
-        process.exitCode = 1
     }
   } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error))
-    process.exitCode = 1
+    handleUserError(error instanceof Error ? error.message : String(error))
   }
 }
 
@@ -327,9 +310,7 @@ const startInteractiveMode = () => {
   rl.prompt()
 
   rl.on('line', async (line) => {
-    if (isQuitting) {
-      return
-    }
+    if (isQuitting) return
 
     const trimmed = line.trim()
 
