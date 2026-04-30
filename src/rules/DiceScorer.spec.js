@@ -42,6 +42,36 @@ describe('DiceScorer', () => {
     expect(result.scoringDiceCount).toBe(5)
   })
 
+  it('scores mixed triple with single one and five', () => {
+    const result = scorer.scoreRoll([3, 3, 3, 1, 5])
+    expect(result.score).toBe(450)
+    expect(result.scoringDiceCount).toBe(5)
+  })
+
+  it('scores triple ones with two fives', () => {
+    const result = scorer.scoreRoll([1, 1, 1, 5, 5])
+    expect(result.score).toBe(1100)
+    expect(result.scoringDiceCount).toBe(5)
+  })
+
+  it('scores triple fives with two ones', () => {
+    const result = scorer.scoreRoll([5, 5, 5, 1, 1])
+    expect(result.score).toBe(700)
+    expect(result.scoringDiceCount).toBe(5)
+  })
+
+  it('does not double count ones inside four of a kind', () => {
+    const result = scorer.scoreRoll([1, 1, 1, 1, 5])
+    expect(result.score).toBe(2050)
+    expect(result.scoringDiceCount).toBe(5)
+  })
+
+  it('does not double count fives inside four of a kind', () => {
+    const result = scorer.scoreRoll([5, 5, 5, 5, 1])
+    expect(result.score).toBe(1100)
+    expect(result.scoringDiceCount).toBe(5)
+  })
+
   it('scores 0 when no scoring dice are rolled', () => {
     const result = scorer.scoreRoll([2, 3, 4, 6, 2])
     expect(result.score).toBe(0)
