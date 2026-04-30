@@ -20,7 +20,7 @@
 - [x] Ajouter des tests de collisions en chaîne multi-joueurs <!-- pi-todo-md:id=12 -->
 - [x] Ajouter des tests de reprise avec score transporté et dés restants <!-- pi-todo-md:id=13 -->
 - [x] Ajouter une API claire pour récupérer l’état de partie sérialisable (snapshot JSON) <!-- pi-todo-md:id=14 -->
-- [ ] Ajouter une couche d’orchestration GameEngine pour enchaîner les actions de jeu <!-- pi-todo-md:id=15 -->
+- [x] Ajouter une couche d’orchestration GameEngine pour enchaîner les actions de jeu <!-- pi-todo-md:id=15 -->
 - [ ] Renforcer la validation des entrées (dés invalides, paramètres incohérents) <!-- pi-todo-md:id=16 -->
 - [ ] Documenter l’architecture et les règles implémentées dans un README technique <!-- pi-todo-md:id=17 -->
 - [ ] Mettre en place la couverture de tests et un seuil minimum <!-- pi-todo-md:id=18 -->
