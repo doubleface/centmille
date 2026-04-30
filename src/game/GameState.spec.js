@@ -30,6 +30,31 @@ describe('GameState', () => {
     )
   })
 
+  it('plays a full turn with keep, reroll, then stop', () => {
+    const game = new GameState(['Alice', 'Bob'])
+
+    game.startTurn()
+    const firstRoll = game.playRoll([1, 2, 3, 4, 6], [1])
+    expect(firstRoll.turnScore).toBe(100)
+    expect(firstRoll.diceToRoll).toBe(4)
+
+    const secondRoll = game.playRoll([5, 2, 3, 4], [5])
+    expect(secondRoll.turnScore).toBe(150)
+    expect(secondRoll.diceToRoll).toBe(3)
+
+    expect(() => game.stopTurn()).toThrow('Cannot stop on a non-multiple of 100')
+  })
+
+  it('fails a turn on bust during active play', () => {
+    const game = new GameState(['Alice', 'Bob'])
+
+    game.startTurn()
+    const result = game.playRoll([2, 3, 4, 6, 2], [2])
+
+    expect(result.type).toBe('failure')
+    expect(game.getCurrentPlayer().name).toBe('Bob')
+  })
+
   it('forbids stopping on a non-multiple of 100', () => {
     const game = new GameState(['Alice', 'Bob'])
 
@@ -59,7 +84,9 @@ describe('GameState', () => {
   it('exposes steal state for next player after validated stop', () => {
     const game = new GameState(['Alice', 'Bob'])
 
-    game.endTurnFromRoll([5, 5, 5, 2, 2], 2)
+    game.startTurn()
+    game.playRoll([5, 5, 5, 2, 2], [5, 5, 5])
+    game.stopTurn()
 
     expect(game.getCurrentPlayer().name).toBe('Bob')
     expect(game.getTurnStartState()).toEqual({

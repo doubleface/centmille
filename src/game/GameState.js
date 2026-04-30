@@ -17,6 +17,7 @@ export class GameState {
     this.turnRules = new TurnRules()
     this.diceScorer = options.diceScorer ?? new DiceScorer()
     this.lastValidatedTurn = null
+    this.activeTurn = null
     this.winner = null
   }
 
@@ -58,6 +59,91 @@ export class GameState {
   endTurnFromRoll(dice, diceRemaining) {
     const rollResult = this.scoreRoll(dice)
     return this.endTurnByStopping(rollResult.score, diceRemaining)
+  }
+
+  startTurn() {
+    if (this.activeTurn) {
+      throw new Error('A turn is already active')
+    }
+
+    const turnStartState = this.getTurnStartState()
+    this.activeTurn = {
+      turnScore: turnStartState.carriedScore,
+      diceToRoll: turnStartState.diceToRoll,
+      canSteal: turnStartState.canSteal,
+    }
+
+    return { ...this.activeTurn }
+  }
+
+  getActiveTurn() {
+    if (!this.activeTurn) return null
+    return { ...this.activeTurn }
+  }
+
+  playRoll(rolledDice, keptDice) {
+    if (!this.activeTurn) {
+      throw new Error('No active turn. Call startTurn first')
+    }
+
+    if (rolledDice.length !== this.activeTurn.diceToRoll) {
+      throw new Error(`Expected ${this.activeTurn.diceToRoll} dice in this roll`)
+    }
+
+    const rollScore = this.scoreRoll(rolledDice)
+    if (rollScore.score === 0) {
+      this.activeTurn = null
+      return this.endTurnWithFailure()
+    }
+
+    if (!Array.isArray(keptDice) || keptDice.length === 0) {
+      throw new Error('You must keep at least one scoring die')
+    }
+
+    if (!this.isDiceSubset(keptDice, rolledDice)) {
+      throw new Error('Kept dice must be a subset of rolled dice')
+    }
+
+    const keptDiceScore = this.scoreRoll(keptDice)
+    if (keptDiceScore.scoringDiceCount !== keptDice.length) {
+      throw new Error('All kept dice must score')
+    }
+
+    this.activeTurn.turnScore += keptDiceScore.score
+    const remainingDice = this.activeTurn.diceToRoll - keptDice.length
+    this.activeTurn.diceToRoll = remainingDice === 0 ? this.diceCount : remainingDice
+
+    return {
+      type: 'roll',
+      turnScore: this.activeTurn.turnScore,
+      diceToRoll: this.activeTurn.diceToRoll,
+      keptScore: keptDiceScore.score,
+    }
+  }
+
+  stopTurn() {
+    if (!this.activeTurn) {
+      throw new Error('No active turn. Call startTurn first')
+    }
+
+    const { turnScore, diceToRoll } = this.activeTurn
+    this.activeTurn = null
+    return this.endTurnByStopping(turnScore, diceToRoll)
+  }
+
+  isDiceSubset(subset, superset) {
+    const counts = new Map()
+    for (const value of superset) {
+      counts.set(value, (counts.get(value) ?? 0) + 1)
+    }
+
+    for (const value of subset) {
+      const available = counts.get(value) ?? 0
+      if (available === 0) return false
+      counts.set(value, available - 1)
+    }
+
+    return true
   }
 
   endTurnWithFailure() {
