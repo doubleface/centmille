@@ -183,4 +183,32 @@ describe('GameState', () => {
     expect(bob.score).toBe(700)
     expect(charlie.score).toBe(300)
   })
+
+  it('starts next turn with carried score and remaining dice after a stop', () => {
+    const game = new GameState(['Alice', 'Bob'])
+
+    game.startTurn()
+    game.playRoll([5, 5, 5, 2, 2], [5, 5, 5])
+    game.stopTurn()
+
+    const nextTurn = game.startTurn()
+
+    expect(game.getCurrentPlayer().name).toBe('Bob')
+    expect(nextTurn.canSteal).toBe(true)
+    expect(nextTurn.turnScore).toBe(500)
+    expect(nextTurn.diceToRoll).toBe(2)
+  })
+
+  it('starts next turn with full dice after a hot dice stop', () => {
+    const game = new GameState(['Alice', 'Bob'])
+
+    game.endTurnByStopping(500, 0)
+
+    const nextTurn = game.startTurn()
+
+    expect(game.getCurrentPlayer().name).toBe('Bob')
+    expect(nextTurn.canSteal).toBe(true)
+    expect(nextTurn.turnScore).toBe(500)
+    expect(nextTurn.diceToRoll).toBe(5)
+  })
 })
