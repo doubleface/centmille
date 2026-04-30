@@ -58,6 +58,8 @@ Tests are colocated next to implementation files as `*.spec.js`.
 - `getSnapshot()` -> JSON-serializable state
 - `GameState.fromSnapshot(snapshot)` -> restore game from snapshot
 
+Save file format (snapshot + metadata) is defined in `docs/save-format.md`.
+
 ## Commands
 
 - `npm test`
