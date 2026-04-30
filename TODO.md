@@ -32,8 +32,8 @@
 - [x] Ajouter un mode interactif (boucle de prompt) <!-- pi-todo-md:id=22 -->
 - [x] Brancher la CLI sur GameEngine.dispatch <!-- pi-todo-md:id=23 -->
 - [x] Définir le format de sauvegarde JSON (snapshot + metadata) <!-- pi-todo-md:id=24 -->
-- [ ] Implémenter save vers un fichier JSON <!-- pi-todo-md:id=25 -->
-- [ ] Implémenter load depuis un fichier JSON avec validation <!-- pi-todo-md:id=26 -->
+- [x] Implémenter save vers un fichier JSON <!-- pi-todo-md:id=25 -->
+- [x] Implémenter load depuis un fichier JSON avec validation <!-- pi-todo-md:id=26 -->
 - [ ] Afficher un état de partie lisible en CLI (scores, joueur courant, tour actif) <!-- pi-todo-md:id=27 -->
 - [ ] Gérer proprement les erreurs utilisateur CLI <!-- pi-todo-md:id=28 -->
 - [ ] Ajouter un historique d’actions de session <!-- pi-todo-md:id=29 -->

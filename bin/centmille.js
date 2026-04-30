@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { dirname, resolve } from 'node:path'
 import readline from 'node:readline'
 import { GameEngine, GameState } from '../src/index.js'
 
@@ -7,6 +9,7 @@ const [, , command, ...args] = process.argv
 
 let engine = null
 let pendingRollDice = null
+let isQuitting = false
 
 const parseKeyValueArgs = (rawArgs) => {
   const values = {}
@@ -43,6 +46,28 @@ const parsePlayersArg = (rawPlayers) => {
   return players.length >= 2 ? players : null
 }
 
+const validateSavePayload = (payload) => {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Invalid save file: root JSON object expected')
+  }
+
+  if (!payload.metadata || typeof payload.metadata !== 'object') {
+    throw new Error('Invalid save file: missing metadata object')
+  }
+
+  if (payload.metadata.game !== 'centmille') {
+    throw new Error('Invalid save file: metadata.game must be "centmille"')
+  }
+
+  if (payload.metadata.formatVersion !== 1) {
+    throw new Error('Invalid save file: unsupported formatVersion')
+  }
+
+  if (!payload.snapshot || typeof payload.snapshot !== 'object') {
+    throw new Error('Invalid save file: missing snapshot object')
+  }
+}
+
 const ensureEngine = () => {
   if (engine) return true
   console.error('No active game. Start one with: new --players=Alice,Bob')
@@ -57,20 +82,20 @@ Usage:
 
 Commands:
   new --players=Alice,Bob       Create a new game session
-  load --snapshot='{"...":...}' Load game state snapshot JSON
+  load --file=./save.json        Load game state from JSON file
   status                         Show current session status
   roll --dice=1,2,3,4,5         Register a roll (staged)
   keep --dice=1,5               Keep scoring dice from current roll
   stop                           Stop current turn
   fail [--reason=bust]           Force a failed turn
-  save                           Print current snapshot JSON
+  save --file=./save.json        Save current session to JSON file
   interactive                    Start interactive CLI loop
   quit                           Exit CLI session
   help                           Show this help
 `)
 }
 
-const runCommand = (inputCommand, inputArgs = []) => {
+const runCommand = async (inputCommand, inputArgs = []) => {
   const parsedArgs = parseKeyValueArgs(inputArgs)
 
   try {
@@ -91,19 +116,24 @@ const runCommand = (inputCommand, inputArgs = []) => {
       }
 
       case 'load': {
-        const rawSnapshot = parsedArgs.snapshot
+        const file = parsedArgs.file
 
-        if (typeof rawSnapshot !== 'string' || rawSnapshot.trim().length === 0) {
-          console.error('Missing required option: --snapshot={...}')
+        if (typeof file !== 'string' || file.trim().length === 0) {
+          console.error('Missing required option: --file=./save.json')
           process.exitCode = 1
           break
         }
 
-        const snapshot = JSON.parse(rawSnapshot)
-        const gameState = GameState.fromSnapshot(snapshot)
+        const filePath = resolve(file)
+        const rawContent = await readFile(filePath, 'utf-8')
+        const payload = JSON.parse(rawContent)
+
+        validateSavePayload(payload)
+
+        const gameState = GameState.fromSnapshot(payload.snapshot)
         engine = new GameEngine(gameState)
         pendingRollDice = null
-        console.log(JSON.stringify({ command: 'load', loaded: true }, null, 2))
+        console.log(JSON.stringify({ command: 'load', file: filePath, loaded: true }, null, 2))
         break
       }
 
@@ -214,8 +244,28 @@ const runCommand = (inputCommand, inputArgs = []) => {
           break
         }
 
-        const snapshot = engine.dispatch({ type: 'snapshot' })
-        console.log(JSON.stringify({ command: 'save', snapshot }, null, 2))
+        const file = parsedArgs.file
+        if (typeof file !== 'string' || file.trim().length === 0) {
+          console.error('Missing required option: --file=./save.json')
+          process.exitCode = 1
+          break
+        }
+
+        const filePath = resolve(file)
+        const payload = {
+          metadata: {
+            formatVersion: 1,
+            game: 'centmille',
+            savedAt: new Date().toISOString(),
+            source: 'cli',
+          },
+          snapshot: engine.dispatch({ type: 'snapshot' }),
+        }
+
+        await mkdir(dirname(filePath), { recursive: true })
+        await writeFile(filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf-8')
+
+        console.log(JSON.stringify({ command: 'save', file: filePath, saved: true }, null, 2))
         break
       }
 
@@ -254,7 +304,11 @@ const startInteractiveMode = () => {
   console.log('Interactive mode started. Type "help" for commands, "quit" to exit.')
   rl.prompt()
 
-  rl.on('line', (line) => {
+  rl.on('line', async (line) => {
+    if (isQuitting) {
+      return
+    }
+
     const trimmed = line.trim()
 
     if (trimmed.length === 0) {
@@ -266,18 +320,22 @@ const startInteractiveMode = () => {
     const normalizedCommand = interactiveCommand === 'exit' ? 'quit' : interactiveCommand
 
     if (normalizedCommand === 'quit') {
-      runCommand('quit')
+      isQuitting = true
+      await runCommand('quit')
       rl.close()
       return
     }
 
-    runCommand(normalizedCommand, interactiveArgs)
-    rl.prompt()
+    await runCommand(normalizedCommand, interactiveArgs)
+    if (!rl.closed) {
+      rl.prompt()
+    }
   })
 
   rl.on('close', () => {
     console.log('Goodbye')
+    isQuitting = false
   })
 }
 
-runCommand(command, args)
+await runCommand(command, args)
