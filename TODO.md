@@ -38,4 +38,4 @@
 - [x] Gérer proprement les erreurs utilisateur CLI <!-- pi-todo-md:id=28 -->
 - [x] Ajouter un historique d’actions de session <!-- pi-todo-md:id=29 -->
 - [x] Écrire des tests d’intégration CLI (new→play→save→load→continue) <!-- pi-todo-md:id=30 -->
-- [ ] Documenter l’usage CLI dans README (quickstart + exemples) <!-- pi-todo-md:id=31 -->
+- [x] Documenter l’usage CLI dans README (quickstart + exemples) <!-- pi-todo-md:id=31 -->

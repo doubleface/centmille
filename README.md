@@ -60,9 +60,39 @@ Tests are colocated next to implementation files as `*.spec.js`.
 
 Save file format (snapshot + metadata) is defined in `docs/save-format.md`.
 
+## CLI quickstart
+
+Run interactive mode:
+
+- `npm run cli -- interactive`
+
+Useful commands inside the prompt:
+
+- `new --players=Alice,Bob`
+- `status`
+- `roll --dice=5,5,5,2,2`
+- `keep --dice=5,5,5`
+- `stop`
+- `save --file=./save.json`
+- `load --file=./save.json`
+- `quit`
+
+Example flow:
+
+```text
+centmille> new --players=Alice,Bob
+centmille> roll --dice=5,5,5,2,2
+centmille> keep --dice=5,5,5
+centmille> stop
+centmille> save --file=./save.json
+centmille> quit
+```
+
 ## Commands
 
 - `npm test`
+- `npm run test:coverage`
 - `npm run check`
 - `npm run format`
 - `npm run lint`
+- `npm run cli -- help`
