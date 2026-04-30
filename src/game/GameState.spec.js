@@ -155,4 +155,32 @@ describe('GameState', () => {
     expect(result.winner?.name).toBe('Alice')
     expect(alice.score).toBe(10000)
   })
+
+  it('applies chained collision drops across multiple players', () => {
+    const game = new GameState(['Alice', 'Bob', 'Charlie'])
+
+    const alice = game.players[0]
+    const bob = game.players[1]
+    const charlie = game.players[2]
+
+    alice.hasOpened = true
+    bob.hasOpened = true
+    charlie.hasOpened = true
+
+    alice.score = 900
+    alice.previousCheckpointScore = 500
+
+    bob.score = 1200
+    bob.previousCheckpointScore = 700
+
+    charlie.score = 700
+    charlie.previousCheckpointScore = 300
+
+    const result = game.endTurnByStopping(300, 1)
+
+    expect(result.type).toBe('validated')
+    expect(alice.score).toBe(1200)
+    expect(bob.score).toBe(700)
+    expect(charlie.score).toBe(300)
+  })
 })
