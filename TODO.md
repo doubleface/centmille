@@ -25,3 +25,17 @@
 - [x] Documenter l’architecture et les règles implémentées dans un README technique <!-- pi-todo-md:id=17 -->
 - [x] Mettre en place la couverture de tests et un seuil minimum <!-- pi-todo-md:id=18 -->
 - [x] Gérer un historique complet des paliers (checkpointHistory) pour supporter plusieurs chutes successives <!-- pi-todo-md:id=19 -->
+
+## CLI
+- [ ] Créer un binaire CLI (bin/centmille.js) et parser les arguments <!-- pi-todo-md:id=20 -->
+- [ ] Définir les commandes de base (new, load, status, roll, keep, stop, fail, save, quit) <!-- pi-todo-md:id=21 -->
+- [ ] Ajouter un mode interactif (boucle de prompt) <!-- pi-todo-md:id=22 -->
+- [ ] Brancher la CLI sur GameEngine.dispatch <!-- pi-todo-md:id=23 -->
+- [ ] Définir le format de sauvegarde JSON (snapshot + metadata) <!-- pi-todo-md:id=24 -->
+- [ ] Implémenter save vers un fichier JSON <!-- pi-todo-md:id=25 -->
+- [ ] Implémenter load depuis un fichier JSON avec validation <!-- pi-todo-md:id=26 -->
+- [ ] Afficher un état de partie lisible en CLI (scores, joueur courant, tour actif) <!-- pi-todo-md:id=27 -->
+- [ ] Gérer proprement les erreurs utilisateur CLI <!-- pi-todo-md:id=28 -->
+- [ ] Ajouter un historique d’actions de session <!-- pi-todo-md:id=29 -->
+- [ ] Écrire des tests d’intégration CLI (new→play→save→load→continue) <!-- pi-todo-md:id=30 -->
+- [ ] Documenter l’usage CLI dans README (quickstart + exemples) <!-- pi-todo-md:id=31 -->
