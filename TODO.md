@@ -29,7 +29,7 @@
 ## CLI
 - [x] Créer un binaire CLI (bin/centmille.js) et parser les arguments <!-- pi-todo-md:id=20 -->
 - [x] Définir les commandes de base (new, load, status, roll, keep, stop, fail, save, quit) <!-- pi-todo-md:id=21 -->
-- [ ] Ajouter un mode interactif (boucle de prompt) <!-- pi-todo-md:id=22 -->
+- [x] Ajouter un mode interactif (boucle de prompt) <!-- pi-todo-md:id=22 -->
 - [ ] Brancher la CLI sur GameEngine.dispatch <!-- pi-todo-md:id=23 -->
 - [ ] Définir le format de sauvegarde JSON (snapshot + metadata) <!-- pi-todo-md:id=24 -->
 - [ ] Implémenter save vers un fichier JSON <!-- pi-todo-md:id=25 -->

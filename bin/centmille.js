@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import readline from 'node:readline'
+
 const [, , command, ...args] = process.argv
 
 const parseKeyValueArgs = (rawArgs) => {
@@ -30,6 +32,7 @@ Commands:
   stop                           Stop current turn
   fail [--reason=bust]           Force a failed turn
   save --file=./save.json        Save current session to JSON
+  interactive                    Start interactive CLI loop
   quit                           Exit CLI session
   help                           Show this help
 `)
@@ -46,9 +49,10 @@ const parseDiceArg = (rawDice) => {
   return dice.length > 0 ? dice : null
 }
 
-const parsedArgs = parseKeyValueArgs(args)
+const runCommand = (inputCommand, inputArgs = []) => {
+  const parsedArgs = parseKeyValueArgs(inputArgs)
 
-switch (command) {
+  switch (inputCommand) {
   case 'new': {
     const playersRaw = parsedArgs.players
 
@@ -135,13 +139,57 @@ switch (command) {
     console.log(JSON.stringify({ command: 'quit' }, null, 2))
     break
 
-  case 'help':
-  case undefined:
-    printHelp()
-    break
+    case 'interactive': {
+      startInteractiveMode()
+      break
+    }
 
-  default:
-    console.error(`Unknown command: ${command}`)
-    printHelp()
-    process.exit(1)
+    case 'help':
+    case undefined:
+      printHelp()
+      break
+
+    default:
+      console.error(`Unknown command: ${inputCommand}`)
+      printHelp()
+      process.exitCode = 1
+  }
 }
+
+const startInteractiveMode = () => {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    prompt: 'centmille> ',
+  })
+
+  console.log('Interactive mode started. Type "help" for commands, "quit" to exit.')
+  rl.prompt()
+
+  rl.on('line', (line) => {
+    const trimmed = line.trim()
+
+    if (trimmed.length === 0) {
+      rl.prompt()
+      return
+    }
+
+    const [interactiveCommand, ...interactiveArgs] = trimmed.split(/\s+/)
+    const normalizedCommand = interactiveCommand === 'exit' ? 'quit' : interactiveCommand
+
+    if (normalizedCommand === 'quit') {
+      console.log(JSON.stringify({ command: 'quit' }, null, 2))
+      rl.close()
+      return
+    }
+
+    runCommand(normalizedCommand, interactiveArgs)
+    rl.prompt()
+  })
+
+  rl.on('close', () => {
+    console.log('Goodbye')
+  })
+}
+
+runCommand(command, args)
