@@ -10,6 +10,7 @@ const [, , command, ...args] = process.argv
 let engine = null
 let pendingRollDice = null
 let isQuitting = false
+let sessionHistory = []
 
 const handleUserError = (message, helpHint) => {
   console.error(`Error: ${message}`)
@@ -74,6 +75,13 @@ const validateSavePayload = (payload) => {
   }
 }
 
+const recordAction = (entry) => {
+  sessionHistory.push(entry)
+  if (sessionHistory.length > 200) {
+    sessionHistory = sessionHistory.slice(-200)
+  }
+}
+
 const ensureEngine = () => {
   if (engine) return true
   handleUserError('No active game.', 'Start one with: new --players=Alice,Bob')
@@ -100,6 +108,11 @@ const formatStatus = (snapshot, stagedDice) => {
 
   const winnerLabel = snapshot.winnerIndex === null ? 'none' : snapshot.players[snapshot.winnerIndex].name
 
+  const recentHistoryLines = sessionHistory.slice(-8).map((entry) => {
+    const status = entry.ok ? 'ok' : `error: ${entry.error}`
+    return `- ${entry.at} | ${entry.command} ${entry.args.join(' ')} | ${status}`
+  })
+
   return [
     '=== Game Status ===',
     `Current player: ${currentPlayer.name}`,
@@ -108,6 +121,8 @@ const formatStatus = (snapshot, stagedDice) => {
     `Staged roll: ${stagedDice ? stagedDice.join(',') : 'none'}`,
     'Scores:',
     scoreLines,
+    'Recent actions:',
+    recentHistoryLines.length > 0 ? recentHistoryLines.join('\n') : '- none',
   ].join('\n')
 }
 
@@ -134,6 +149,7 @@ Commands:
 
 const runCommand = async (inputCommand, inputArgs = []) => {
   const parsedArgs = parseKeyValueArgs(inputArgs)
+  let commandError = null
 
   try {
     switch (inputCommand) {
@@ -295,7 +311,18 @@ const runCommand = async (inputCommand, inputArgs = []) => {
         printHelp()
     }
   } catch (error) {
-    handleUserError(error instanceof Error ? error.message : String(error))
+    commandError = error instanceof Error ? error.message : String(error)
+    handleUserError(commandError)
+  } finally {
+    if (inputCommand && inputCommand !== 'interactive') {
+      recordAction({
+        at: new Date().toISOString(),
+        command: inputCommand,
+        args: inputArgs,
+        ok: commandError === null,
+        error: commandError,
+      })
+    }
   }
 }
 
@@ -306,33 +333,37 @@ const startInteractiveMode = () => {
     prompt: 'centmille> ',
   })
 
+  let commandQueue = Promise.resolve()
+
   console.log('Interactive mode started. Type "help" for commands, "quit" to exit.')
   rl.prompt()
 
-  rl.on('line', async (line) => {
-    if (isQuitting) return
+  rl.on('line', (line) => {
+    commandQueue = commandQueue.then(async () => {
+      if (isQuitting) return
 
-    const trimmed = line.trim()
+      const trimmed = line.trim()
 
-    if (trimmed.length === 0) {
-      rl.prompt()
-      return
-    }
+      if (trimmed.length === 0) {
+        if (!rl.closed) rl.prompt()
+        return
+      }
 
-    const [interactiveCommand, ...interactiveArgs] = trimmed.split(/\s+/)
-    const normalizedCommand = interactiveCommand === 'exit' ? 'quit' : interactiveCommand
+      const [interactiveCommand, ...interactiveArgs] = trimmed.split(/\s+/)
+      const normalizedCommand = interactiveCommand === 'exit' ? 'quit' : interactiveCommand
 
-    if (normalizedCommand === 'quit') {
-      isQuitting = true
-      await runCommand('quit')
-      rl.close()
-      return
-    }
+      if (normalizedCommand === 'quit') {
+        isQuitting = true
+        await runCommand('quit')
+        rl.close()
+        return
+      }
 
-    await runCommand(normalizedCommand, interactiveArgs)
-    if (!rl.closed) {
-      rl.prompt()
-    }
+      await runCommand(normalizedCommand, interactiveArgs)
+      if (!rl.closed) {
+        rl.prompt()
+      }
+    })
   })
 
   rl.on('close', () => {
