@@ -8,9 +8,28 @@ export class GameState {
       throw new Error('GameState requires at least 2 players')
     }
 
+    const hasInvalidPlayerName = playerNames.some(
+      (name) => typeof name !== 'string' || name.trim().length === 0
+    )
+    if (hasInvalidPlayerName) {
+      throw new Error('Player names must be non-empty strings')
+    }
+
     this.targetScore = options.targetScore ?? 10000
     this.diceCount = options.diceCount ?? 5
     this.openingScore = options.openingScore ?? 500
+
+    if (!Number.isInteger(this.targetScore) || this.targetScore <= 0) {
+      throw new Error('targetScore must be a positive integer')
+    }
+
+    if (!Number.isInteger(this.diceCount) || this.diceCount <= 0) {
+      throw new Error('diceCount must be a positive integer')
+    }
+
+    if (!Number.isInteger(this.openingScore) || this.openingScore < 0) {
+      throw new Error('openingScore must be a non-negative integer')
+    }
 
     this.players = playerNames.map((name) => new PlayerState(name))
     this.currentPlayerIndex = 0
@@ -47,6 +66,14 @@ export class GameState {
   }
 
   static fromSnapshot(snapshot, options = {}) {
+    if (!snapshot || typeof snapshot !== 'object') {
+      throw new Error('Snapshot must be an object')
+    }
+
+    if (!Array.isArray(snapshot.players) || snapshot.players.length < 2) {
+      throw new Error('Snapshot must contain at least 2 players')
+    }
+
     const playerNames = snapshot.players.map((player) => player.name)
     const game = new GameState(playerNames, {
       targetScore: snapshot.targetScore,
@@ -214,6 +241,14 @@ export class GameState {
 
   endTurnByStopping(turnScore, diceRemaining) {
     const player = this.getCurrentPlayer()
+
+    if (!Number.isInteger(turnScore) || turnScore <= 0) {
+      throw new Error('turnScore must be a positive integer')
+    }
+
+    if (!Number.isInteger(diceRemaining) || diceRemaining < 0 || diceRemaining > this.diceCount) {
+      throw new Error(`diceRemaining must be an integer between 0 and ${this.diceCount}`)
+    }
 
     if (!this.turnRules.canStop(turnScore)) {
       throw new Error('Cannot stop on a non-multiple of 100')

@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { GameState } from './GameState.js'
 
 describe('GameState', () => {
+  it('rejects invalid constructor inputs', () => {
+    expect(() => new GameState(['Alice'])).toThrow('GameState requires at least 2 players')
+    expect(() => new GameState(['Alice', ''])).toThrow('Player names must be non-empty strings')
+    expect(() => new GameState(['Alice', 'Bob'], { diceCount: 0 })).toThrow(
+      'diceCount must be a positive integer'
+    )
+  })
+
   it('starts with first player and no steal option', () => {
     const game = new GameState(['Alice', 'Bob'])
 
@@ -53,6 +61,15 @@ describe('GameState', () => {
 
     expect(result.type).toBe('failure')
     expect(game.getCurrentPlayer().name).toBe('Bob')
+  })
+
+  it('rejects incoherent stopping parameters', () => {
+    const game = new GameState(['Alice', 'Bob'])
+
+    expect(() => game.endTurnByStopping(0, 2)).toThrow('turnScore must be a positive integer')
+    expect(() => game.endTurnByStopping(200, 6)).toThrow(
+      'diceRemaining must be an integer between 0 and 5'
+    )
   })
 
   it('forbids stopping on a non-multiple of 100', () => {
@@ -234,5 +251,12 @@ describe('GameState', () => {
 
     expect(restoredGame.getSnapshot()).toEqual(snapshot)
     expect(restoredGame.getCurrentPlayer().name).toBe('Bob')
+  })
+
+  it('rejects invalid snapshot input', () => {
+    expect(() => GameState.fromSnapshot(null)).toThrow('Snapshot must be an object')
+    expect(() => GameState.fromSnapshot({ players: [] })).toThrow(
+      'Snapshot must contain at least 2 players'
+    )
   })
 })
