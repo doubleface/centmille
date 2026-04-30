@@ -4,13 +4,17 @@
   "description": "Moteur de règles du jeu 10 000 avec tests unitaires",
   "type": "module",
   "main": "src/index.js",
+  "bin": {
+    "centmille": "bin/centmille.js"
+  },
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "biome lint .",
     "format": "biome format --write .",
-    "check": "biome check ."
+    "check": "biome check .",
+    "cli": "node ./bin/centmille.js"
   },
   "keywords": [
     "dixmille",
