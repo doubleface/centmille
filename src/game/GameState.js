@@ -25,6 +25,53 @@ export class GameState {
     return this.players[this.currentPlayerIndex]
   }
 
+  getSnapshot() {
+    const winnerIndex = this.winner ? this.players.indexOf(this.winner) : null
+
+    return {
+      targetScore: this.targetScore,
+      diceCount: this.diceCount,
+      openingScore: this.openingScore,
+      currentPlayerIndex: this.currentPlayerIndex,
+      players: this.players.map((player) => ({
+        name: player.name,
+        score: player.score,
+        previousCheckpointScore: player.previousCheckpointScore,
+        hasOpened: player.hasOpened,
+        failedTurnsInRow: player.failedTurnsInRow,
+      })),
+      lastValidatedTurn: this.lastValidatedTurn ? { ...this.lastValidatedTurn } : null,
+      activeTurn: this.activeTurn ? { ...this.activeTurn } : null,
+      winnerIndex,
+    }
+  }
+
+  static fromSnapshot(snapshot, options = {}) {
+    const playerNames = snapshot.players.map((player) => player.name)
+    const game = new GameState(playerNames, {
+      targetScore: snapshot.targetScore,
+      diceCount: snapshot.diceCount,
+      openingScore: snapshot.openingScore,
+      diceScorer: options.diceScorer,
+    })
+
+    game.currentPlayerIndex = snapshot.currentPlayerIndex
+    game.lastValidatedTurn = snapshot.lastValidatedTurn ? { ...snapshot.lastValidatedTurn } : null
+    game.activeTurn = snapshot.activeTurn ? { ...snapshot.activeTurn } : null
+
+    for (const [index, playerSnapshot] of snapshot.players.entries()) {
+      const player = game.players[index]
+      player.score = playerSnapshot.score
+      player.previousCheckpointScore = playerSnapshot.previousCheckpointScore
+      player.hasOpened = playerSnapshot.hasOpened
+      player.failedTurnsInRow = playerSnapshot.failedTurnsInRow
+    }
+
+    game.winner = snapshot.winnerIndex === null ? null : game.players[snapshot.winnerIndex]
+
+    return game
+  }
+
   getTurnStartState() {
     if (!this.lastValidatedTurn) {
       return { canSteal: false, carriedScore: 0, diceToRoll: this.diceCount }

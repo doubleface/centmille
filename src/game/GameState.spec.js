@@ -211,4 +211,28 @@ describe('GameState', () => {
     expect(nextTurn.turnScore).toBe(500)
     expect(nextTurn.diceToRoll).toBe(5)
   })
+
+  it('returns a serializable snapshot of game state', () => {
+    const game = new GameState(['Alice', 'Bob'])
+
+    game.startTurn()
+    game.playRoll([5, 5, 5, 2, 2], [5, 5, 5])
+
+    const snapshot = game.getSnapshot()
+
+    expect(JSON.parse(JSON.stringify(snapshot))).toEqual(snapshot)
+    expect(snapshot.players[0].name).toBe('Alice')
+    expect(snapshot.activeTurn?.turnScore).toBe(500)
+  })
+
+  it('restores game state from a snapshot', () => {
+    const game = new GameState(['Alice', 'Bob'])
+    game.endTurnByStopping(500, 2)
+
+    const snapshot = game.getSnapshot()
+    const restoredGame = GameState.fromSnapshot(snapshot)
+
+    expect(restoredGame.getSnapshot()).toEqual(snapshot)
+    expect(restoredGame.getCurrentPlayer().name).toBe('Bob')
+  })
 })
