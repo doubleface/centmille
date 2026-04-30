@@ -29,6 +29,22 @@ describe('GameEngine', () => {
     expect(snapshot.currentPlayerIndex).toBe(0)
   })
 
+  it('forces a failure with default reason', () => {
+    const engine = GameEngine.create(['Alice', 'Bob'])
+
+    const result = engine.dispatch({ type: 'force_failure' })
+
+    expect(result.type).toBe('failure')
+    expect(result.reason).toBe('bust')
+    expect(engine.getState().getCurrentPlayer().name).toBe('Bob')
+  })
+
+  it('rejects non-object actions', () => {
+    const engine = GameEngine.create(['Alice', 'Bob'])
+
+    expect(() => engine.dispatch(null)).toThrow('Action must be an object')
+  })
+
   it('throws on unknown action', () => {
     const engine = GameEngine.create(['Alice', 'Bob'])
 

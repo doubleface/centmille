@@ -63,6 +63,61 @@ describe('GameState', () => {
     expect(game.getCurrentPlayer().name).toBe('Bob')
   })
 
+  it('returns active turn snapshot after start', () => {
+    const game = new GameState(['Alice', 'Bob'])
+
+    game.startTurn()
+
+    expect(game.getActiveTurn()).toEqual({
+      turnScore: 0,
+      diceToRoll: 5,
+      canSteal: false,
+    })
+  })
+
+  it('returns null when no active turn exists', () => {
+    const game = new GameState(['Alice', 'Bob'])
+
+    expect(game.getActiveTurn()).toBe(null)
+  })
+
+  it('rejects starting a turn when one is already active', () => {
+    const game = new GameState(['Alice', 'Bob'])
+
+    game.startTurn()
+
+    expect(() => game.startTurn()).toThrow('A turn is already active')
+  })
+
+  it('rejects playing a roll when no active turn exists', () => {
+    const game = new GameState(['Alice', 'Bob'])
+
+    expect(() => game.playRoll([1, 2, 3, 4, 6], [1])).toThrow(
+      'No active turn. Call startTurn first'
+    )
+  })
+
+  it('rejects invalid kept dice during roll', () => {
+    const game = new GameState(['Alice', 'Bob'])
+
+    game.startTurn()
+    expect(() => game.playRoll([1, 2, 3, 4], [1])).toThrow('Expected 5 dice in this roll')
+
+    expect(() => game.playRoll([1, 2, 3, 4, 6], [])).toThrow('You must keep at least one scoring die')
+
+    expect(() => game.playRoll([1, 2, 3, 4, 6], [1, 1])).toThrow(
+      'Kept dice must be a subset of rolled dice'
+    )
+
+    expect(() => game.playRoll([1, 2, 3, 4, 6], [2])).toThrow('All kept dice must score')
+  })
+
+  it('rejects stopping turn when no active turn exists', () => {
+    const game = new GameState(['Alice', 'Bob'])
+
+    expect(() => game.stopTurn()).toThrow('No active turn. Call startTurn first')
+  })
+
   it('rejects incoherent stopping parameters', () => {
     const game = new GameState(['Alice', 'Bob'])
 
