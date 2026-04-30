@@ -74,6 +74,37 @@ const ensureEngine = () => {
   return false
 }
 
+const formatStatus = (snapshot, stagedDice) => {
+  const currentPlayer = snapshot.players[snapshot.currentPlayerIndex]
+  const activeTurn = snapshot.activeTurn
+
+  const scoreLines = snapshot.players
+    .map((player, index) => {
+      const marker = index === snapshot.currentPlayerIndex ? '>' : ' '
+      const history = Array.isArray(player.checkpointHistory)
+        ? player.checkpointHistory.join(' -> ')
+        : 'n/a'
+      return `${marker} ${player.name}: ${player.score} pts (fails: ${player.failedTurnsInRow}) | history: ${history}`
+    })
+    .join('\n')
+
+  const activeTurnLabel = activeTurn
+    ? `turnScore=${activeTurn.turnScore}, diceToRoll=${activeTurn.diceToRoll}, canSteal=${activeTurn.canSteal}`
+    : 'none'
+
+  const winnerLabel = snapshot.winnerIndex === null ? 'none' : snapshot.players[snapshot.winnerIndex].name
+
+  return [
+    '=== Game Status ===',
+    `Current player: ${currentPlayer.name}`,
+    `Winner: ${winnerLabel}`,
+    `Active turn: ${activeTurnLabel}`,
+    `Staged roll: ${stagedDice ? stagedDice.join(',') : 'none'}`,
+    'Scores:',
+    scoreLines,
+  ].join('\n')
+}
+
 const printHelp = () => {
   console.log(`centmille CLI
 
@@ -143,17 +174,8 @@ const runCommand = async (inputCommand, inputArgs = []) => {
           break
         }
 
-        console.log(
-          JSON.stringify(
-            {
-              command: 'status',
-              pendingRollDice,
-              snapshot: engine.dispatch({ type: 'snapshot' }),
-            },
-            null,
-            2
-          )
-        )
+        const snapshot = engine.dispatch({ type: 'snapshot' })
+        console.log(formatStatus(snapshot, pendingRollDice))
         break
       }
 
