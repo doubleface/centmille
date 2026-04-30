@@ -1,3 +1,4 @@
+import { DiceScorer } from '../rules/DiceScorer.js'
 import { TurnRules } from '../rules/TurnRules.js'
 import { PlayerState } from './PlayerState.js'
 
@@ -14,6 +15,7 @@ export class GameState {
     this.players = playerNames.map((name) => new PlayerState(name))
     this.currentPlayerIndex = 0
     this.turnRules = new TurnRules()
+    this.diceScorer = options.diceScorer ?? new DiceScorer()
     this.lastValidatedTurn = null
     this.winner = null
   }
@@ -35,6 +37,27 @@ export class GameState {
           ? this.diceCount
           : this.lastValidatedTurn.diceRemaining,
     }
+  }
+
+  scoreRoll(dice) {
+    const isValidDiceArray =
+      Array.isArray(dice) &&
+      dice.length > 0 &&
+      dice.length <= this.diceCount &&
+      dice.every((value) => Number.isInteger(value) && value >= 1 && value <= 6)
+
+    if (!isValidDiceArray) {
+      throw new Error(
+        `Dice roll must contain between 1 and ${this.diceCount} integers in range 1-6`
+      )
+    }
+
+    return this.diceScorer.scoreRoll(dice)
+  }
+
+  endTurnFromRoll(dice, diceRemaining) {
+    const rollResult = this.scoreRoll(dice)
+    return this.endTurnByStopping(rollResult.score, diceRemaining)
   }
 
   endTurnWithFailure() {

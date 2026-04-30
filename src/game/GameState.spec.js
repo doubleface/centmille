@@ -13,6 +13,23 @@ describe('GameState', () => {
     })
   })
 
+  it('scores a roll through DiceScorer from GameState', () => {
+    const game = new GameState(['Alice', 'Bob'])
+
+    const result = game.scoreRoll([1, 5, 2, 2, 3])
+
+    expect(result.score).toBe(150)
+    expect(result.scoringDiceCount).toBe(2)
+  })
+
+  it('rejects invalid dice roll input', () => {
+    const game = new GameState(['Alice', 'Bob'])
+
+    expect(() => game.scoreRoll([0, 7])).toThrow(
+      'Dice roll must contain between 1 and 5 integers in range 1-6'
+    )
+  })
+
   it('forbids stopping on a non-multiple of 100', () => {
     const game = new GameState(['Alice', 'Bob'])
 
@@ -42,7 +59,7 @@ describe('GameState', () => {
   it('exposes steal state for next player after validated stop', () => {
     const game = new GameState(['Alice', 'Bob'])
 
-    game.endTurnByStopping(500, 2)
+    game.endTurnFromRoll([5, 5, 5, 2, 2], 2)
 
     expect(game.getCurrentPlayer().name).toBe('Bob')
     expect(game.getTurnStartState()).toEqual({
