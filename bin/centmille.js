@@ -3,6 +3,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import readline from 'node:readline'
+import createDebug from 'debug'
 import { GameEngine, GameState } from '../src/index.js'
 
 const [, , command, ...args] = process.argv
@@ -11,6 +12,9 @@ let engine = null
 let pendingRollDice = null
 let isQuitting = false
 let sessionHistory = []
+
+const debugCli = createDebug('centmille:cli')
+const debugCommand = createDebug('centmille:command')
 
 const handleUserError = (message, helpHint) => {
   console.error(`Error: ${message}`)
@@ -151,6 +155,8 @@ const runCommand = async (inputCommand, inputArgs = []) => {
   const parsedArgs = parseKeyValueArgs(inputArgs)
   let commandError = null
 
+  debugCommand('run %s args=%o parsed=%o', inputCommand, inputArgs, parsedArgs)
+
   try {
     switch (inputCommand) {
       case 'new': {
@@ -165,6 +171,7 @@ const runCommand = async (inputCommand, inputArgs = []) => {
         }
 
         engine = GameEngine.create(players)
+        debugCli('new game created with players=%o', players)
         pendingRollDice = null
         console.log(JSON.stringify({ command: 'new', players }, null, 2))
         break
@@ -186,6 +193,7 @@ const runCommand = async (inputCommand, inputArgs = []) => {
 
         const gameState = GameState.fromSnapshot(payload.snapshot)
         engine = new GameEngine(gameState)
+        debugCli('game loaded from file=%s', filePath)
         pendingRollDice = null
         console.log(JSON.stringify({ command: 'load', file: filePath, loaded: true }, null, 2))
         break
@@ -214,6 +222,7 @@ const runCommand = async (inputCommand, inputArgs = []) => {
         }
 
         pendingRollDice = dice
+        debugCli('staged roll dice=%o', dice)
         console.log(JSON.stringify({ command: 'roll', dice, staged: true }, null, 2))
         break
       }
@@ -238,6 +247,7 @@ const runCommand = async (inputCommand, inputArgs = []) => {
           rolledDice: pendingRollDice,
           keptDice,
         })
+        debugCli('keep dice=%o result=%o', keptDice, result)
 
         pendingRollDice = null
         console.log(JSON.stringify({ command: 'keep', keptDice, result }, null, 2))
@@ -248,6 +258,7 @@ const runCommand = async (inputCommand, inputArgs = []) => {
         if (!ensureEngine()) break
 
         const result = engine.dispatch({ type: 'stop_turn' })
+        debugCli('stop turn result=%o', result)
         pendingRollDice = null
         console.log(JSON.stringify({ command: 'stop', result }, null, 2))
         break
@@ -260,6 +271,7 @@ const runCommand = async (inputCommand, inputArgs = []) => {
           type: 'force_failure',
           reason: parsedArgs.reason ?? 'bust',
         })
+        debugCli('force failure result=%o', result)
         pendingRollDice = null
         console.log(JSON.stringify({ command: 'fail', result }, null, 2))
         break
@@ -287,6 +299,7 @@ const runCommand = async (inputCommand, inputArgs = []) => {
 
         await mkdir(dirname(filePath), { recursive: true })
         await writeFile(filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf-8')
+        debugCli('game saved to file=%s', filePath)
 
         console.log(JSON.stringify({ command: 'save', file: filePath, saved: true }, null, 2))
         break
@@ -312,6 +325,7 @@ const runCommand = async (inputCommand, inputArgs = []) => {
     }
   } catch (error) {
     commandError = error instanceof Error ? error.message : String(error)
+    debugCli('command failed: %s', commandError)
     handleUserError(commandError)
   } finally {
     if (inputCommand && inputCommand !== 'interactive') {
@@ -327,6 +341,7 @@ const runCommand = async (inputCommand, inputArgs = []) => {
 }
 
 const startInteractiveMode = () => {
+  debugCli('start interactive mode')
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -339,6 +354,7 @@ const startInteractiveMode = () => {
   rl.prompt()
 
   rl.on('line', (line) => {
+    debugCommand('interactive line=%s', line)
     commandQueue = commandQueue.then(async () => {
       if (isQuitting) return
 
