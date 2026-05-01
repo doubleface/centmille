@@ -47,7 +47,7 @@
 - [x] Créer le shell TUI ink (layout: scores, tour actif, dés en attente, historique, aide) <!-- pi-todo-md:id=35 -->
 - [x] Implémenter les actions TUI: new, load, roll, keep, stop, fail, save, quit <!-- pi-todo-md:id=36 -->
 - [x] Afficher les erreurs utilisateur dans la TUI (message bar non bloquante) <!-- pi-todo-md:id=37 -->
-- [ ] Ajouter des helpers purs pour le rendu/parse input TUI et leurs tests unitaires <!-- pi-todo-md:id=38 -->
+- [x] Ajouter des helpers purs pour le rendu/parse input TUI et leurs tests unitaires <!-- pi-todo-md:id=38 -->
 - [ ] Ajouter un test smoke d’intégration TUI (start puis quit) <!-- pi-todo-md:id=39 -->
 - [ ] Documenter la TUI dans README (quickstart, raccourcis, debug) <!-- pi-todo-md:id=40 -->
 - [ ] Valider final: npm run check, npm test, npm run test:coverage <!-- pi-todo-md:id=41 -->

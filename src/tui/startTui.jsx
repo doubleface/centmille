@@ -1,57 +1,7 @@
 import { Box, render, Text, useApp, useInput } from 'ink'
 import React, { useMemo, useState } from 'react'
 import { CliSession } from '../cli/CliSession.js'
-
-const parseDiceArg = (rawDice) => {
-  if (typeof rawDice !== 'string' || rawDice.trim().length === 0) return null
-
-  const dice = rawDice
-    .split(',')
-    .map((value) => Number.parseInt(value.trim(), 10))
-    .filter((value) => Number.isInteger(value))
-
-  return dice.length > 0 ? dice : null
-}
-
-const parsePlayersArg = (rawPlayers) => {
-  if (typeof rawPlayers !== 'string' || rawPlayers.trim().length === 0) return null
-
-  const players = rawPlayers
-    .split(',')
-    .map((name) => name.trim())
-    .filter(Boolean)
-
-  return players.length >= 2 ? players : null
-}
-
-const formatStatus = (session) => {
-  if (!session.hasActiveGame()) {
-    return {
-      currentPlayer: 'aucun',
-      winner: 'aucun',
-      activeTurn: 'aucun',
-      stagedRoll: session.pendingRollDice ? session.pendingRollDice.join(',') : 'aucun',
-      scores: ['Aucune partie active. Appuyez sur n pour commencer.'],
-    }
-  }
-
-  const snapshot = session.getSnapshot()
-  const currentPlayer = snapshot.players[snapshot.currentPlayerIndex]
-  const activeTurn = snapshot.activeTurn
-
-  return {
-    currentPlayer: currentPlayer.name,
-    winner: snapshot.winnerIndex === null ? 'aucun' : snapshot.players[snapshot.winnerIndex].name,
-    activeTurn: activeTurn
-      ? `turnScore=${activeTurn.turnScore}, diceToRoll=${activeTurn.diceToRoll}, canSteal=${activeTurn.canSteal}`
-      : 'aucun',
-    stagedRoll: session.pendingRollDice ? session.pendingRollDice.join(',') : 'aucun',
-    scores: snapshot.players.map((player, index) => {
-      const marker = index === snapshot.currentPlayerIndex ? '>' : ' '
-      return `${marker} ${player.name}: ${player.score} pts (fails: ${player.failedTurnsInRow})`
-    }),
-  }
-}
+import { formatStatus, parseDiceArg, parsePlayersArg } from './helpers.js'
 
 const App = () => {
   const { exit } = useApp()
@@ -80,7 +30,14 @@ const App = () => {
     }
   }
 
-  const status = useMemo(() => formatStatus(session), [session, version])
+  const status = useMemo(() => {
+    const hasActiveGame = session.hasActiveGame()
+    return formatStatus({
+      hasActiveGame,
+      snapshot: hasActiveGame ? session.getSnapshot() : null,
+      pendingRollDice: session.pendingRollDice,
+    })
+  }, [session, version])
 
   useInput((input, key) => {
     if (promptMode) {
