@@ -50,7 +50,15 @@ export class GameState {
       return { canStop: false, blockedReason: 'Aucun tour actif', warning: null }
     }
 
-    const { turnScore } = this.activeTurn
+    // Projette le score si un lancer attend d'être gardé
+    let turnScore = this.activeTurn.turnScore
+    if (this.pendingRoll) {
+      const scoringDice = this.diceScorer.getScoringDice(this.pendingRoll.rolledDice)
+      if (scoringDice.length > 0) {
+        turnScore += this.diceScorer.scoreRoll(scoringDice).score
+      }
+    }
+
     if (turnScore <= 0) {
       return { canStop: false, blockedReason: 'Aucun dé gardé sur ce tour', warning: null }
     }

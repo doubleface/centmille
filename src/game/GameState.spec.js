@@ -402,6 +402,34 @@ describe('GameState', () => {
     expect(restored.getPhase()).toBe('awaitingDecision')
   })
 
+  it('projects stop availability using pending roll scoring dice', () => {
+    const game = new GameState(['Alice', 'Bob'])
+    game.startTurn()
+
+    // turnScore=0, pendingRoll=[1,1,1,2,3] → scoring=[1,1,1]=1000 (multiple de 100, ≥500)
+    game.recordRoll([1, 1, 1, 2, 3])
+    const available = game.getStopAvailability()
+    expect(available.canStop).toBe(true)
+    expect(available.blockedReason).toBeNull()
+
+    // Contrôle: sans pendingRoll, turnScore=0 → bloqué
+    game.pendingRoll = null
+    expect(game.getStopAvailability().canStop).toBe(false)
+  })
+
+  it('projette un arrêt bloqué par la règle multiple de 100, pas ouverture', () => {
+    const game = new GameState(['Alice', 'Bob'])
+    game.startTurn()
+
+    // turnScore=0, pendingRoll=[4,5,4,4,4] → scoring=850 (non multiple de 100)
+    // Avant le fix, l'erreur était "Ouverture impossible sous 500" car turnScore=0.
+    // Après le fix, l'erreur est correctement "multiple de 100" car 850%100≠0.
+    game.recordRoll([4, 5, 4, 4, 4])
+    const availability = game.getStopAvailability()
+    expect(availability.canStop).toBe(false)
+    expect(availability.blockedReason).toBe('Le score du tour doit être un multiple de 100')
+  })
+
   it('exposes stop availability with French reasons', () => {
     const game = new GameState(['Alice', 'Bob'])
     expect(game.getStopAvailability()).toEqual({
