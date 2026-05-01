@@ -1,5 +1,5 @@
 import { Box, render, Text, useApp, useInput } from 'ink'
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { CliSession } from '../cli/CliSession.js'
 import { selectAutoKeptDice } from './autoKeep.js'
 import { DiceView } from './DiceView.jsx'
@@ -13,6 +13,7 @@ const App = () => {
   const [promptMode, setPromptMode] = useState(null)
   const [promptValue, setPromptValue] = useState('')
   const [version, setVersion] = useState(0)
+  const [decisionIndex, setDecisionIndex] = useState(0)
 
   const refresh = () => setVersion((value) => value + 1)
 
@@ -41,6 +42,25 @@ const App = () => {
       pendingRollDice: session.pendingRollDice,
     })
   }, [session, version])
+
+  const runAutoRoll = () => {
+    if (!session.hasActiveGame()) throw new Error('Aucune partie active.')
+
+    const snapshot = session.getSnapshot()
+    const diceToRoll = snapshot.activeTurn?.diceToRoll ?? 5
+    const dice = rollDice(diceToRoll)
+
+    session.stageRoll(dice)
+    setMessage({ type: 'success', text: `Lancer auto: ${dice.join(',')}` })
+  }
+
+  useEffect(() => {
+    if (!promptMode && session.hasActiveGame() && !session.pendingRollDice) {
+      execute('roll-auto', () => {
+        runAutoRoll()
+      })
+    }
+  }, [promptMode, session, version])
 
   useInput((input, key) => {
     if (promptMode) {
@@ -109,30 +129,43 @@ const App = () => {
       setMessage({ type: 'info', text: 'Entrez le chemin du fichier à charger' })
       return
     }
-    if (input === 'r') {
-      execute('roll', () => {
-        if (!session.hasActiveGame()) throw new Error('Aucune partie active.')
+    if (session.hasActiveGame() && session.pendingRollDice) {
+      if (key.leftArrow || input === 'j') {
+        setDecisionIndex(0)
+        return
+      }
 
-        const snapshot = session.getSnapshot()
-        const diceToRoll = snapshot.activeTurn?.diceToRoll ?? 5
-        const dice = rollDice(diceToRoll)
+      if (key.rightArrow || input === 'k') {
+        setDecisionIndex(1)
+        return
+      }
 
-        session.stageRoll(dice)
-        setMessage({ type: 'success', text: `Lancer auto: ${dice.join(',')}` })
-      })
-      return
-    }
-    if (input === 'k') {
-      execute('keep', () => {
-        if (!session.hasActiveGame()) throw new Error('Aucune partie active.')
-        if (!session.pendingRollDice) throw new Error('Aucun lancer saisi.')
-
+      if (key.return) {
         const keptDice = selectAutoKeptDice(session.pendingRollDice)
-        if (keptDice.length === 0) throw new Error('Aucun dé scorant à garder.')
+        if (keptDice.length === 0) {
+          execute('fail', () => {
+            session.fail('bust')
+            setMessage({ type: 'error', text: 'Aucun dé scorant: tour échoué.' })
+          })
+          return
+        }
 
-        session.keep(keptDice)
-        setMessage({ type: 'success', text: `Dés auto-gardés: ${keptDice.join(',')}` })
-      })
+        if (decisionIndex === 0) {
+          execute('continue', () => {
+            session.keep(keptDice)
+            runAutoRoll()
+            setMessage({ type: 'success', text: `Continue: dés gardés ${keptDice.join(',')}` })
+          })
+          return
+        }
+
+        execute('stop', () => {
+          session.keep(keptDice)
+          session.stop()
+          setMessage({ type: 'success', text: 'Tour arrêté' })
+        })
+      }
+
       return
     }
     if (input === 'w') {
@@ -142,22 +175,6 @@ const App = () => {
       return
     }
 
-    if (input === 's') {
-      execute('stop', () => {
-        if (!session.hasActiveGame()) throw new Error('Aucune partie active.')
-        session.stop()
-        setMessage({ type: 'success', text: 'Tour arrêté' })
-      })
-      return
-    }
-
-    if (input === 'f') {
-      execute('fail', () => {
-        if (!session.hasActiveGame()) throw new Error('Aucune partie active.')
-        session.fail('bust')
-        setMessage({ type: 'success', text: 'Échec forcé: bust' })
-      }, ['--reason=bust'])
-    }
   })
 
   const autoKeptDice = session.pendingRollDice ? selectAutoKeptDice(session.pendingRollDice) : []
@@ -166,7 +183,7 @@ const App = () => {
   return (
     <Box flexDirection="column" paddingX={1}>
       <Text color="greenBright">centmille TUI (ink)</Text>
-      <Text color="gray">q quitter | n nouvelle | l charger | r auto-lancer | k auto-garder | s stop | f échec | w sauver</Text>
+      <Text color="gray">q quitter | n nouvelle | l charger | w sauver</Text>
       <Text color={message.type === 'error' ? 'red' : message.type === 'success' ? 'green' : 'yellow'}>
         {message.text}
       </Text>
@@ -192,6 +209,12 @@ const App = () => {
         <Text>Lancer saisi: {status.stagedRoll}</Text>
         <Text>Dés préselectionnés: {autoKeptDice.length > 0 ? autoKeptDice.join(',') : 'aucun'}</Text>
         <DiceView rolledDice={session.pendingRollDice} selectedDice={autoKeptDice} />
+        {session.pendingRollDice && (
+          <Text>
+            {decisionIndex === 0 ? '▶ Continuer' : '  Continuer'}   {decisionIndex === 1 ? '▶ Arrêter' : '  Arrêter'}
+            {'  '} (←/→ ou j/k, Entrée pour valider)
+          </Text>
+        )}
       </Box>
 
       <Box borderStyle="round" borderColor="cyan" flexDirection="column" paddingX={1} marginTop={1}>

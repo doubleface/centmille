@@ -51,7 +51,7 @@
 - [x] Refondre le flux de tour TUI en mode auto-lancer (RNG interne) <!-- pi-todo-md:id=42 -->
 - [x] Implémenter la présélection automatique des dés scorants (auto-keep) <!-- pi-todo-md:id=43 -->
 - [x] Ajouter un affichage des dés en grand avec couleur pour la sélection <!-- pi-todo-md:id=44 -->
-- [ ] Implémenter le choix unique Continuer/Arrêter avec navigation flèches + j/k + Entrée <!-- pi-todo-md:id=45 -->
+- [x] Implémenter le choix unique Continuer/Arrêter avec navigation flèches + j/k + Entrée <!-- pi-todo-md:id=45 -->
 - [ ] Ajouter une state machine TUI pure pour piloter les transitions de tour <!-- pi-todo-md:id=46 -->
 - [ ] Ajouter un test smoke d’intégration TUI (start puis quit) <!-- pi-todo-md:id=39 -->
 - [ ] Documenter la TUI dans README (quickstart, raccourcis, debug) <!-- pi-todo-md:id=40 -->
