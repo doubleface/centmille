@@ -52,7 +52,11 @@
 - [x] Implémenter la présélection automatique des dés scorants (auto-keep) <!-- pi-todo-md:id=43 -->
 - [x] Ajouter un affichage des dés en grand avec couleur pour la sélection <!-- pi-todo-md:id=44 -->
 - [x] Implémenter le choix unique Continuer/Arrêter avec navigation flèches + j/k + Entrée <!-- pi-todo-md:id=45 -->
-- [ ] Ajouter une state machine TUI pure pour piloter les transitions de tour <!-- pi-todo-md:id=46 -->
-- [ ] Ajouter un test smoke d’intégration TUI (start puis quit) <!-- pi-todo-md:id=39 -->
-- [ ] Documenter la TUI dans README (quickstart, raccourcis, debug) <!-- pi-todo-md:id=40 -->
-- [ ] Valider final: npm run check, npm test, npm run test:coverage <!-- pi-todo-md:id=41 -->
+- [x] Faire remonter les dés du bust dans GameState (endTurnWithFailure + recordRoll) [focus] <!-- pi-todo-md:id=47 -->
+- [x] Mettre en pause la boucle advance() sur bust via un état bustInfo dans startTui.jsx <!-- pi-todo-md:id=48 -->
+- [x] Ajouter la garde useInput pour confirmer le bust avec Entrée puis reprendre advance() <!-- pi-todo-md:id=49 -->
+- [x] Afficher l’écran de bust (message, checkpoint drop, DiceView, invite Entrée) dans la TUI <!-- pi-todo-md:id=50 -->
+- [x] Mettre à jour GameState.spec.js pour vérifier result.rolledDice sur bust <!-- pi-todo-md:id=51 -->
+- [x] Mettre à jour scenarios.spec.js pour la non-régression des résultats bust avec rolledDice <!-- pi-todo-md:id=52 -->
+- [x] Valider avec npx vitest run, npm run check et smoke test npm run tui <!-- pi-todo-md:id=53 -->
+  - note: Validation OK: npx vitest run ✅ (11 files, 90 tests), npm run check ✅, smoke TUI validé dans tmux (lancement `npm run tui` en session tmux puis sortie via touche q).

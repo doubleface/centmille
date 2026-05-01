@@ -19,13 +19,13 @@ const App = () => {
   const [promptMode, setPromptMode] = useState(null)
   const [promptValue, setPromptValue] = useState('')
   const [decisionIndex, setDecisionIndex] = useState(0)
+  const [bustInfo, setBustInfo] = useState(null)
 
   const recordHistory = (command, args = [], error = null) => {
     session.addHistory({ at: new Date().toISOString(), command, args, ok: error === null, error })
   }
 
   const advance = () => {
-    let bustedThisTick = false
     while (session.hasActiveGame()) {
       const current = session.getSnapshot()
       if (current.phase === 'awaitingDecision' || current.phase === 'gameOver') break
@@ -42,7 +42,14 @@ const App = () => {
         recordHistory('roll-auto', [dice.join(',')])
         if (result.type === 'failure') {
           recordHistory('bust')
-          bustedThisTick = true
+          if (result.rolledDice) {
+            setBustInfo({
+              rolledDice: result.rolledDice,
+              playerName: result.player.name,
+              checkpointDrop: result.checkpointDrop,
+            })
+            break
+          }
         }
         continue
       }
@@ -50,9 +57,6 @@ const App = () => {
       break
     }
 
-    if (bustedThisTick) {
-      setMessage({ type: 'error', text: 'Aucun dé scorant: tour échoué.' })
-    }
     setSnapshot(readSnapshot(session))
     setDecisionIndex(0)
   }
@@ -115,6 +119,14 @@ const App = () => {
   }
 
   useInput((input, key) => {
+    if (bustInfo) {
+      if (key.return) {
+        setBustInfo(null)
+        advance()
+      }
+      return
+    }
+
     if (promptMode) {
       if (key.return) {
         const mode = promptMode
@@ -246,6 +258,14 @@ const App = () => {
             </Text>
             {stop?.blockedReason && <Text color="yellow">Arrêt impossible: {stop.blockedReason}</Text>}
             {stop?.warning && <Text color="yellow">⚠ {stop.warning}</Text>}
+          </>
+        )}
+        {bustInfo && (
+          <>
+            <Text color="red">Bust ! {bustInfo.playerName} — aucun dé scorant</Text>
+            {bustInfo.checkpointDrop && <Text color="red">Retour au checkpoint précédent !</Text>}
+            <DiceView rolledDice={bustInfo.rolledDice} selectedDice={[]} />
+            <Text color="gray">Appuyez sur Entrée pour passer la main</Text>
           </>
         )}
         {isGameOver && (

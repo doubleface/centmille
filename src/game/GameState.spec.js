@@ -370,6 +370,7 @@ describe('GameState', () => {
     const result = game.recordRoll([2, 3, 4, 6, 6])
 
     expect(result.type).toBe('failure')
+    expect(result.rolledDice).toEqual([2, 3, 4, 6, 6])
     expect(game.pendingRoll).toBeNull()
     expect(game.activeTurn).toBeNull()
     expect(game.currentPlayerIndex).toBe(1)

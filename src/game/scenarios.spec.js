@@ -22,10 +22,10 @@ describe('scénarios de parties', () => {
 
     engine.dispatch({ type: 'start_turn' })
     //          dés lancés          gardés         score cumulé  dés restants
-    roll(engine, [1, 2, 3, 4, 6], [1])           // 100          4
-    roll(engine, [5, 2, 3, 4],    [5])           // 50  → 150    3
-    roll(engine, [5, 5, 2],       [5, 5])        // 100 → 250    1
-    roll(engine, [5],             [5])           // 50  → 300    0 → hot dice (5 dés)
+    roll(engine, [1, 2, 3, 4, 6], [1]) // 100          4
+    roll(engine, [5, 2, 3, 4], [5]) // 50  → 150    3
+    roll(engine, [5, 5, 2], [5, 5]) // 100 → 250    1
+    roll(engine, [5], [5]) // 50  → 300    0 → hot dice (5 dés)
 
     // Score = 300 < 500 : arrêt impossible avant ouverture
     expect(() => engine.dispatch({ type: 'stop_turn' })).toThrow('Cannot open below 500')
@@ -33,7 +33,7 @@ describe('scénarios de parties', () => {
     expect(snap(engine).stop.blockedReason).toBe('Ouverture impossible sous 500 points')
 
     // Continue et franchit le seuil d'ouverture
-    roll(engine, [5, 5, 5, 2, 3], [5, 5, 5])    // 500 → 800    2 dés
+    roll(engine, [5, 5, 5, 2, 3], [5, 5, 5]) // 500 → 800    2 dés
     engine.dispatch({ type: 'stop_turn' })
 
     expect(player(engine, 0).score).toBe(800)
@@ -46,20 +46,20 @@ describe('scénarios de parties', () => {
 
     // Alice garde 3 dés sur 5 → 2 dés restants transmis à Bob
     engine.dispatch({ type: 'start_turn' })
-    roll(engine, [5, 5, 5, 1, 2], [5, 5, 5])   // 500 pts, 2 dés restants
-    engine.dispatch({ type: 'stop_turn' })       // lastValidatedTurn = {score:500, diceRemaining:2}
+    roll(engine, [5, 5, 5, 1, 2], [5, 5, 5]) // 500 pts, 2 dés restants
+    engine.dispatch({ type: 'stop_turn' }) // lastValidatedTurn = {score:500, diceRemaining:2}
 
     expect(player(engine, 0).score).toBe(500)
 
     // Bob hérite: carriedScore=500, diceToRoll=2
     const bobTurnStart = engine.dispatch({ type: 'start_turn' })
     expect(bobTurnStart.canSteal).toBe(true)
-    expect(bobTurnStart.turnScore).toBe(500)   // carriedScore transmis comme turnScore initial
+    expect(bobTurnStart.turnScore).toBe(500) // carriedScore transmis comme turnScore initial
     expect(bobTurnStart.diceToRoll).toBe(2)
 
     // Bob joue ses 2 dés volés → hot dice (tous scorants) → relance 5 dés
-    roll(engine, [5, 5],          [5, 5])        // 100 → 600    0 → hot dice (5 dés)
-    roll(engine, [5, 5, 5, 2, 3], [5, 5, 5])    // 500 → 1100   2 dés
+    roll(engine, [5, 5], [5, 5]) // 100 → 600    0 → hot dice (5 dés)
+    roll(engine, [5, 5, 5, 2, 3], [5, 5, 5]) // 500 → 1100   2 dés
     engine.dispatch({ type: 'stop_turn' })
 
     expect(player(engine, 1).score).toBe(1100)
@@ -74,9 +74,9 @@ describe('scénarios de parties', () => {
     // 1×1×1 = 1000, 5+5 = 100 → score 1100, tous les dés scorent → hot dice
     const firstKeep = roll(engine, [1, 1, 1, 5, 5], [1, 1, 1, 5, 5])
     expect(firstKeep.turnScore).toBe(1100)
-    expect(firstKeep.diceToRoll).toBe(5)   // réinitialisé après hot dice
+    expect(firstKeep.diceToRoll).toBe(5) // réinitialisé après hot dice
 
-    roll(engine, [5, 5, 5, 2, 3], [5, 5, 5])   // 500 → 1600   2 dés
+    roll(engine, [5, 5, 5, 2, 3], [5, 5, 5]) // 500 → 1600   2 dés
     engine.dispatch({ type: 'stop_turn' })
 
     expect(player(engine, 0).score).toBe(1600)
@@ -87,7 +87,7 @@ describe('scénarios de parties', () => {
 
     // Alice atteint 1000 pts (nouveau checkpoint: historique [0, 1000])
     engine.dispatch({ type: 'start_turn' })
-    roll(engine, [1, 1, 1, 2, 3], [1, 1, 1])   // 1000 pts, 2 dés
+    roll(engine, [1, 1, 1, 2, 3], [1, 1, 1]) // 1000 pts, 2 dés
     engine.dispatch({ type: 'stop_turn' })
     expect(player(engine, 0).score).toBe(1000)
 
@@ -98,7 +98,7 @@ describe('scénarios de parties', () => {
     }
 
     // Après le 3ème échec d'Alice : retour au checkpoint précédent (0)
-    expect(player(engine, 0).failedTurnsInRow).toBe(0)  // remis à zéro après drop
+    expect(player(engine, 0).failedTurnsInRow).toBe(0) // remis à zéro après drop
     expect(player(engine, 0).score).toBe(0)
   })
 
@@ -107,7 +107,7 @@ describe('scénarios de parties', () => {
 
     // Alice atteint 1000 (checkpoint: [0, 1000])
     engine.dispatch({ type: 'start_turn' })
-    roll(engine, [1, 1, 1, 2, 3], [1, 1, 1])   // 1000, 2 dés
+    roll(engine, [1, 1, 1, 2, 3], [1, 1, 1]) // 1000, 2 dés
     engine.dispatch({ type: 'stop_turn' })
     expect(player(engine, 0).score).toBe(1000)
 
@@ -124,11 +124,22 @@ describe('scénarios de parties', () => {
     expect(bobStart.turnScore).toBe(0)
 
     // Bob atterrit sur 1000 → collision → Alice recule à son checkpoint précédent (0)
-    roll(engine, [1, 1, 1, 2, 3], [1, 1, 1])   // 1000
+    roll(engine, [1, 1, 1, 2, 3], [1, 1, 1]) // 1000
     engine.dispatch({ type: 'stop_turn' })
 
     expect(player(engine, 1).score).toBe(1000)
-    expect(player(engine, 0).score).toBe(0)     // Alice repoussée à 0
+    expect(player(engine, 0).score).toBe(0) // Alice repoussée à 0
+  })
+
+  it('retourne les dés sur bust via record_roll', () => {
+    const engine = GameEngine.create(['Alice', 'Bob'])
+
+    engine.dispatch({ type: 'start_turn' })
+    const bust = engine.dispatch({ type: 'record_roll', rolledDice: [2, 3, 4, 6, 6] })
+
+    expect(bust.type).toBe('failure')
+    expect(bust.reason).toBe('bust')
+    expect(bust.rolledDice).toEqual([2, 3, 4, 6, 6])
   })
 
   it('dépassement compte comme un échec, puis victoire par score exact', () => {
@@ -156,11 +167,11 @@ describe('scénarios de parties', () => {
 
     // Alice tente +1000 → 2500 > 2000 : overshoot = échec
     engine.dispatch({ type: 'start_turn' })
-    roll(engine, [1, 1, 1, 2, 3], [1, 1, 1])   // turnScore=1000
+    roll(engine, [1, 1, 1, 2, 3], [1, 1, 1]) // turnScore=1000
     const overshoot = engine.dispatch({ type: 'stop_turn' })
     expect(overshoot.type).toBe('failure')
     expect(overshoot.reason).toBe('overshoot')
-    expect(player(engine, 0).score).toBe(1500)  // score inchangé
+    expect(player(engine, 0).score).toBe(1500) // score inchangé
 
     skipTurn(engine) // Bob
 
@@ -170,7 +181,7 @@ describe('scénarios de parties', () => {
     expect(snap(engine).stop.canStop).toBe(false)
     expect(snap(engine).stop.blockedReason).toBe('Aucun dé gardé sur ce tour')
 
-    roll(engine, [5, 5, 5, 2, 3], [5, 5, 5])   // 500 → 1500+500=2000
+    roll(engine, [5, 5, 5, 2, 3], [5, 5, 5]) // 500 → 1500+500=2000
     const winResult = engine.dispatch({ type: 'stop_turn' })
 
     expect(winResult.type).toBe('validated')

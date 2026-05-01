@@ -235,7 +235,7 @@ export class GameState {
     const rollScore = this.scoreRoll(rolledDice)
     if (rollScore.score === 0) {
       this.activeTurn = null
-      return this.endTurnWithFailure()
+      return this.endTurnWithFailure('bust', [...rolledDice])
     }
 
     this.pendingRoll = { rolledDice: [...rolledDice] }
@@ -321,7 +321,7 @@ export class GameState {
     return true
   }
 
-  endTurnWithFailure(reason = 'bust') {
+  endTurnWithFailure(reason = 'bust', rolledDice = null) {
     const player = this.getCurrentPlayer()
     this.activeTurn = null
     this.pendingRoll = null
@@ -339,6 +339,7 @@ export class GameState {
       checkpointDrop: failureResult.checkpointDrop,
       reason,
       player,
+      rolledDice,
     }
   }
 
