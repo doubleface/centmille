@@ -56,7 +56,7 @@ const formatStatus = (session) => {
 const App = () => {
   const { exit } = useApp()
   const [session] = useState(() => new CliSession())
-  const [message, setMessage] = useState('Prêt')
+  const [message, setMessage] = useState({ type: 'info', text: 'Prêt' })
   const [promptMode, setPromptMode] = useState(null)
   const [promptValue, setPromptValue] = useState('')
   const [version, setVersion] = useState(0)
@@ -74,7 +74,7 @@ const App = () => {
       refresh()
     } catch (error) {
       const messageText = error instanceof Error ? error.message : String(error)
-      setMessage(`Erreur: ${messageText}`)
+      setMessage({ type: 'error', text: `Erreur: ${messageText}` })
       addHistory(command, args, messageText)
       refresh()
     }
@@ -91,10 +91,13 @@ const App = () => {
 
         if (promptMode === 'new') {
           const players = parsePlayersArg(value)
-          if (!players) return setMessage('Erreur: Joueurs invalides. Utilisez Alice,Bob')
+          if (!players) {
+            setMessage({ type: 'error', text: 'Erreur: Joueurs invalides. Utilisez Alice,Bob' })
+            return
+          }
           execute('new', () => {
             session.newGame(players)
-            setMessage(`Nouvelle partie: ${players.join(', ')}`)
+            setMessage({ type: 'success', text: `Nouvelle partie: ${players.join(', ')}` })
           }, [`--players=${value}`])
           return
         }
@@ -102,30 +105,36 @@ const App = () => {
         if (promptMode === 'load') {
           execute('load', async () => {
             await session.load(value)
-            setMessage(`Chargé: ${value}`)
+            setMessage({ type: 'success', text: `Chargé: ${value}` })
           }, [`--file=${value}`])
           return
         }
 
         if (promptMode === 'roll') {
           const dice = parseDiceArg(value)
-          if (!dice) return setMessage('Erreur: Dés invalides. Utilisez 1,2,3,4,5')
+          if (!dice) {
+            setMessage({ type: 'error', text: 'Erreur: Dés invalides. Utilisez 1,2,3,4,5' })
+            return
+          }
           execute('roll', () => {
             if (!session.hasActiveGame()) throw new Error('Aucune partie active.')
             session.stageRoll(dice)
-            setMessage(`Lancer saisi: ${dice.join(',')}`)
+            setMessage({ type: 'success', text: `Lancer saisi: ${dice.join(',')}` })
           }, [`--dice=${value}`])
           return
         }
 
         if (promptMode === 'keep') {
           const keptDice = parseDiceArg(value)
-          if (!keptDice) return setMessage('Erreur: Dés gardés invalides. Utilisez 1,5')
+          if (!keptDice) {
+            setMessage({ type: 'error', text: 'Erreur: Dés gardés invalides. Utilisez 1,5' })
+            return
+          }
           execute('keep', () => {
             if (!session.hasActiveGame()) throw new Error('Aucune partie active.')
             if (!session.pendingRollDice) throw new Error('Aucun lancer saisi.')
             session.keep(keptDice)
-            setMessage(`Dés gardés: ${keptDice.join(',')}`)
+            setMessage({ type: 'success', text: `Dés gardés: ${keptDice.join(',')}` })
           }, [`--dice=${value}`])
           return
         }
@@ -134,7 +143,7 @@ const App = () => {
           execute('save', async () => {
             if (!session.hasActiveGame()) throw new Error('Aucune partie active.')
             await session.save(value)
-            setMessage(`Sauvegardé: ${value}`)
+            setMessage({ type: 'success', text: `Sauvegardé: ${value}` })
           }, [`--file=${value}`])
         }
         return
@@ -160,31 +169,31 @@ const App = () => {
     if (input === 'n') {
       setPromptMode('new')
       setPromptValue('')
-      setMessage('Entrez les joueurs: Alice,Bob')
+      setMessage({ type: 'info', text: 'Entrez les joueurs: Alice,Bob' })
       return
     }
     if (input === 'l') {
       setPromptMode('load')
       setPromptValue('')
-      setMessage('Entrez le chemin du fichier à charger')
+      setMessage({ type: 'info', text: 'Entrez le chemin du fichier à charger' })
       return
     }
     if (input === 'r') {
       setPromptMode('roll')
       setPromptValue('')
-      setMessage('Entrez le lancer: 1,2,3,4,5')
+      setMessage({ type: 'info', text: 'Entrez le lancer: 1,2,3,4,5' })
       return
     }
     if (input === 'k') {
       setPromptMode('keep')
       setPromptValue('')
-      setMessage('Entrez les dés gardés: 1,5')
+      setMessage({ type: 'info', text: 'Entrez les dés gardés: 1,5' })
       return
     }
     if (input === 'w') {
       setPromptMode('save')
       setPromptValue('')
-      setMessage('Entrez le chemin du fichier à sauvegarder')
+      setMessage({ type: 'info', text: 'Entrez le chemin du fichier à sauvegarder' })
       return
     }
 
@@ -192,7 +201,7 @@ const App = () => {
       execute('stop', () => {
         if (!session.hasActiveGame()) throw new Error('Aucune partie active.')
         session.stop()
-        setMessage('Tour arrêté')
+        setMessage({ type: 'success', text: 'Tour arrêté' })
       })
       return
     }
@@ -201,7 +210,7 @@ const App = () => {
       execute('fail', () => {
         if (!session.hasActiveGame()) throw new Error('Aucune partie active.')
         session.fail('bust')
-        setMessage('Échec forcé: bust')
+        setMessage({ type: 'success', text: 'Échec forcé: bust' })
       }, ['--reason=bust'])
     }
   })
@@ -212,7 +221,9 @@ const App = () => {
     <Box flexDirection="column" paddingX={1}>
       <Text color="greenBright">centmille TUI (ink)</Text>
       <Text color="gray">q quitter | n nouvelle | l charger | r lancer | k garder | s stop | f échec | w sauver</Text>
-      <Text color={message.startsWith('Erreur:') ? 'red' : 'yellow'}>{message}</Text>
+      <Text color={message.type === 'error' ? 'red' : message.type === 'success' ? 'green' : 'yellow'}>
+        {message.text}
+      </Text>
 
       {promptMode && (
         <Text color="cyan">
