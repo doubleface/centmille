@@ -5,6 +5,7 @@ import {
   parseDiceArg,
   parsePlayersArg,
   shouldPromptStealChoice,
+  shouldTriggerManualRoll,
 } from './helpers.js'
 
 describe('tui helpers', () => {
@@ -27,6 +28,15 @@ describe('tui helpers', () => {
     it('returns null for missing or single player', () => {
       expect(parsePlayersArg('')).toBeNull()
       expect(parsePlayersArg('Alice')).toBeNull()
+    })
+  })
+
+  describe('manual roll helper', () => {
+    it('triggers roll only on space during rolling phase', () => {
+      expect(shouldTriggerManualRoll({ phase: 'rolling' }, ' ')).toBe(true)
+      expect(shouldTriggerManualRoll({ phase: 'rolling' }, 'r')).toBe(false)
+      expect(shouldTriggerManualRoll({ phase: 'awaitingDecision' }, ' ')).toBe(false)
+      expect(shouldTriggerManualRoll(null, ' ')).toBe(false)
     })
   })
 

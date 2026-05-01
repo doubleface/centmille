@@ -20,6 +20,9 @@ export const parsePlayersArg = (rawPlayers) => {
   return players.length >= 2 ? players : null
 }
 
+export const shouldTriggerManualRoll = (snapshot, input) =>
+  snapshot?.phase === 'rolling' && input === ' '
+
 export const shouldPromptStealChoice = (snapshot, turnStartState) => {
   if (!snapshot || !turnStartState) return false
   return (

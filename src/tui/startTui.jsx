@@ -5,7 +5,12 @@ import { DiceScorer } from '../rules/DiceScorer.js'
 import { selectAutoKeptDice } from './autoKeep.js'
 import { DiceView } from './DiceView.jsx'
 import { rollDice } from './dice.js'
-import { formatStatus, makeStealChoiceInfo, parsePlayersArg } from './helpers.js'
+import {
+  formatStatus,
+  makeStealChoiceInfo,
+  parsePlayersArg,
+  shouldTriggerManualRoll,
+} from './helpers.js'
 
 const scorer = new DiceScorer()
 
@@ -46,21 +51,7 @@ const App = () => {
       }
 
       if (current.phase === 'rolling') {
-        const dice = rollDice(current.activeTurn.diceToRoll)
-        const result = session.dispatch({ type: 'record_roll', rolledDice: dice })
-        recordHistory('roll-auto', [dice.join(',')])
-        if (result.type === 'failure') {
-          recordHistory('bust')
-          if (result.rolledDice) {
-            setBustInfo({
-              rolledDice: result.rolledDice,
-              playerName: result.player.name,
-              checkpointDrop: result.checkpointDrop,
-            })
-            break
-          }
-        }
-        continue
+        break
       }
 
       break
@@ -180,6 +171,26 @@ const App = () => {
 
     if (input === 'q' || (key.ctrl && input === 'c')) return exit()
 
+    if (shouldTriggerManualRoll(snapshot, input)) {
+      runSync('roll-manual', () => {
+        const current = session.getSnapshot()
+        const dice = rollDice(current.activeTurn.diceToRoll)
+        const result = session.dispatch({ type: 'record_roll', rolledDice: dice })
+        recordHistory('roll-manual', [dice.join(',')])
+        if (result.type === 'failure') {
+          recordHistory('bust')
+          if (result.rolledDice) {
+            setBustInfo({
+              rolledDice: result.rolledDice,
+              playerName: result.player.name,
+              checkpointDrop: result.checkpointDrop,
+            })
+          }
+        }
+      })
+      return
+    }
+
     if (snapshot?.phase === 'awaitingDecision') {
       if (key.leftArrow || input === 'j') return setDecisionIndex(0)
       if (key.rightArrow || input === 'k') return setDecisionIndex(1)
@@ -231,13 +242,16 @@ const App = () => {
   const projectedTurnScore = (snapshot?.activeTurn?.turnScore ?? 0) + keptScore
   const stop = snapshot?.stop
   const recentHistory = session.getRecentHistory(8)
+  const isRolling = snapshot?.phase === 'rolling'
   const isDecision = snapshot?.phase === 'awaitingDecision'
   const isStealChoice = Boolean(stealChoiceInfo)
   const isGameOver = snapshot?.phase === 'gameOver'
 
   const keyHints = isStealChoice || isDecision
     ? '←/→ ou j/k naviguer | Entrée valider | w sauver | q quitter'
-    : 'n nouvelle | l charger | w sauver | q quitter'
+    : isRolling
+      ? 'Espace lancer | w sauver | q quitter'
+      : 'n nouvelle | l charger | w sauver | q quitter'
 
   return (
     <Box flexDirection="column" paddingX={1}>
@@ -278,6 +292,7 @@ const App = () => {
             </Text>
           </>
         )}
+        {isRolling && <Text color="yellow">Appuyez sur Espace pour lancer les dés</Text>}
         {isDecision && (
           <Text>
             Score projeté: {projectedTurnScore} (gardés: {autoKeptDice.join(',') || 'aucun'})
