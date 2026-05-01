@@ -3,7 +3,7 @@
 import readline from 'node:readline'
 import createDebug from 'debug'
 import { CliSession } from '../src/cli/CliSession.js'
-import { startTui } from '../src/tui/startTui.js'
+import { startTui } from '../src/tui/startTui.jsx'
 
 const [, , command, ...args] = process.argv
 

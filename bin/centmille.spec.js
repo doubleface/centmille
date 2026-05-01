@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process'
 import { describe, expect, it } from 'vitest'
 
 const runInteractiveCli = (input) => {
-  return spawnSync('node', ['./bin/centmille.js', 'interactive'], {
+  return spawnSync('node', ['--import', 'tsx', './bin/centmille.js', 'interactive'], {
     cwd: process.cwd(),
     input,
     encoding: 'utf-8',
