@@ -14,7 +14,8 @@
     "lint": "biome lint .",
     "format": "biome format --write .",
     "check": "biome check .",
-    "cli": "node ./bin/centmille.js"
+    "cli": "node ./bin/centmille.js",
+    "tui": "node ./bin/centmille.js tui"
   },
   "keywords": [
     "dixmille",

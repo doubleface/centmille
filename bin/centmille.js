@@ -3,6 +3,7 @@
 import readline from 'node:readline'
 import createDebug from 'debug'
 import { CliSession } from '../src/cli/CliSession.js'
+import { startTui } from '../src/tui/startTui.js'
 
 const [, , command, ...args] = process.argv
 
@@ -117,6 +118,7 @@ Commands:
   fail [--reason=bust]           Force a failed turn
   save --file=./save.json        Save current session to JSON file
   interactive                    Start interactive CLI loop
+  tui                            Start terminal UI mode
   quit                           Exit CLI session
   help                           Show this help
 `)
@@ -247,6 +249,11 @@ const runCommand = async (inputCommand, inputArgs = []) => {
 
       case 'interactive': {
         startInteractiveMode()
+        break
+      }
+
+      case 'tui': {
+        startTui()
         break
       }
 
