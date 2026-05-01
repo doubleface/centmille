@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { formatStatus, parseDiceArg, parsePlayersArg } from './helpers.js'
+import {
+  formatStatus,
+  makeStealChoiceInfo,
+  parseDiceArg,
+  parsePlayersArg,
+  shouldPromptStealChoice,
+} from './helpers.js'
 
 describe('tui helpers', () => {
   describe('parseDiceArg', () => {
@@ -21,6 +27,36 @@ describe('tui helpers', () => {
     it('returns null for missing or single player', () => {
       expect(parsePlayersArg('')).toBeNull()
       expect(parsePlayersArg('Alice')).toBeNull()
+    })
+  })
+
+  describe('steal choice helpers', () => {
+    it('prompts when awaiting turn start with stealable carried score', () => {
+      const snapshot = {
+        phase: 'awaitingTurnStart',
+        currentPlayerIndex: 1,
+        players: [{ name: 'Alice' }, { name: 'Bob' }],
+      }
+      const turnStartState = { canSteal: true, carriedScore: 500, diceToRoll: 2 }
+
+      expect(shouldPromptStealChoice(snapshot, turnStartState)).toBe(true)
+      expect(makeStealChoiceInfo(snapshot, turnStartState)).toEqual({
+        playerName: 'Bob',
+        carriedScore: 500,
+        diceToRoll: 2,
+      })
+    })
+
+    it('does not prompt when no steal is available', () => {
+      const snapshot = {
+        phase: 'awaitingTurnStart',
+        currentPlayerIndex: 0,
+        players: [{ name: 'Alice' }, { name: 'Bob' }],
+      }
+      const turnStartState = { canSteal: false, carriedScore: 0, diceToRoll: 5 }
+
+      expect(shouldPromptStealChoice(snapshot, turnStartState)).toBe(false)
+      expect(makeStealChoiceInfo(snapshot, turnStartState)).toBeNull()
     })
   })
 

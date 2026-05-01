@@ -20,7 +20,7 @@ export class GameEngine {
 
     switch (action.type) {
       case 'start_turn':
-        return this.gameState.startTurn()
+        return this.gameState.startTurn({ steal: action.steal })
       case 'roll':
         return this.gameState.playRoll(action.rolledDice, action.keptDice)
       case 'record_roll':
@@ -33,6 +33,8 @@ export class GameEngine {
         return this.gameState.endTurnWithFailure(action.reason ?? 'bust')
       case 'snapshot':
         return this.gameState.getSnapshot()
+      case 'turn_start_state':
+        return this.gameState.getTurnStartState()
       default:
         throw new Error(`Unknown action type: ${action.type}`)
     }

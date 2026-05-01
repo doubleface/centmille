@@ -309,6 +309,21 @@ describe('GameState', () => {
     expect(nextTurn.diceToRoll).toBe(2)
   })
 
+  it('allows refusing steal and starts from zero with full dice', () => {
+    const game = new GameState(['Alice', 'Bob'])
+
+    game.startTurn()
+    game.playRoll([5, 5, 5, 2, 2], [5, 5, 5])
+    game.stopTurn()
+
+    const nextTurn = game.startTurn({ steal: false })
+
+    expect(nextTurn.canSteal).toBe(false)
+    expect(nextTurn.turnScore).toBe(0)
+    expect(nextTurn.diceToRoll).toBe(5)
+    expect(game.getTurnStartState()).toEqual({ canSteal: false, carriedScore: 0, diceToRoll: 5 })
+  })
+
   it('starts next turn with full dice after a hot dice stop', () => {
     const game = new GameState(['Alice', 'Bob'])
 

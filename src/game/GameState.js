@@ -199,16 +199,23 @@ export class GameState {
     return this.endTurnByStopping(rollResult.score, diceRemaining)
   }
 
-  startTurn() {
+  startTurn(options = {}) {
     if (this.activeTurn) {
       throw new Error('A turn is already active')
     }
 
     const turnStartState = this.getTurnStartState()
+    const shouldSteal = options.steal ?? true
+    const useSteal = turnStartState.canSteal && shouldSteal
+
     this.activeTurn = {
-      turnScore: turnStartState.carriedScore,
-      diceToRoll: turnStartState.diceToRoll,
-      canSteal: turnStartState.canSteal,
+      turnScore: useSteal ? turnStartState.carriedScore : 0,
+      diceToRoll: useSteal ? turnStartState.diceToRoll : this.diceCount,
+      canSteal: useSteal,
+    }
+
+    if (!useSteal && turnStartState.canSteal) {
+      this.lastValidatedTurn = null
     }
 
     return { ...this.activeTurn }

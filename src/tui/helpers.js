@@ -20,6 +20,25 @@ export const parsePlayersArg = (rawPlayers) => {
   return players.length >= 2 ? players : null
 }
 
+export const shouldPromptStealChoice = (snapshot, turnStartState) => {
+  if (!snapshot || !turnStartState) return false
+  return (
+    snapshot.phase === 'awaitingTurnStart' &&
+    turnStartState.canSteal === true &&
+    turnStartState.carriedScore > 0
+  )
+}
+
+export const makeStealChoiceInfo = (snapshot, turnStartState) => {
+  if (!shouldPromptStealChoice(snapshot, turnStartState)) return null
+
+  return {
+    playerName: snapshot.players[snapshot.currentPlayerIndex].name,
+    carriedScore: turnStartState.carriedScore,
+    diceToRoll: turnStartState.diceToRoll,
+  }
+}
+
 export const formatStatus = (snapshot) => {
   if (!snapshot) {
     return {

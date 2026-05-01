@@ -5,7 +5,7 @@ import { DiceScorer } from '../rules/DiceScorer.js'
 import { selectAutoKeptDice } from './autoKeep.js'
 import { DiceView } from './DiceView.jsx'
 import { rollDice } from './dice.js'
-import { formatStatus, parsePlayersArg } from './helpers.js'
+import { formatStatus, makeStealChoiceInfo, parsePlayersArg } from './helpers.js'
 
 const scorer = new DiceScorer()
 
@@ -19,6 +19,8 @@ const App = () => {
   const [promptMode, setPromptMode] = useState(null)
   const [promptValue, setPromptValue] = useState('')
   const [decisionIndex, setDecisionIndex] = useState(0)
+  const [stealDecisionIndex, setStealDecisionIndex] = useState(0)
+  const [stealChoiceInfo, setStealChoiceInfo] = useState(null)
   const [bustInfo, setBustInfo] = useState(null)
 
   const recordHistory = (command, args = [], error = null) => {
@@ -31,8 +33,15 @@ const App = () => {
       if (current.phase === 'awaitingDecision' || current.phase === 'gameOver') break
 
       if (current.phase === 'awaitingTurnStart') {
-        session.dispatch({ type: 'start_turn' })
-        recordHistory('start-turn')
+        const turnStartState = session.dispatch({ type: 'turn_start_state' })
+        const nextStealChoiceInfo = makeStealChoiceInfo(current, turnStartState)
+        if (nextStealChoiceInfo) {
+          setStealChoiceInfo(nextStealChoiceInfo)
+          break
+        }
+
+        session.dispatch({ type: 'start_turn', steal: false })
+        recordHistory('start-turn', ['steal=false'])
         continue
       }
 
@@ -119,6 +128,21 @@ const App = () => {
   }
 
   useInput((input, key) => {
+    if (stealChoiceInfo) {
+      if (key.leftArrow || input === 'j') return setStealDecisionIndex(0)
+      if (key.rightArrow || input === 'k') return setStealDecisionIndex(1)
+      if (key.return) {
+        const steal = stealDecisionIndex === 0
+        runSync(steal ? 'start-turn-steal' : 'start-turn-no-steal', () => {
+          session.dispatch({ type: 'start_turn', steal })
+          setStealChoiceInfo(null)
+          setStealDecisionIndex(0)
+          setMessage({ type: 'success', text: steal ? 'Vol activé' : 'Vol refusé' })
+        })
+      }
+      return
+    }
+
     if (bustInfo) {
       if (key.return) {
         setBustInfo(null)
@@ -208,9 +232,10 @@ const App = () => {
   const stop = snapshot?.stop
   const recentHistory = session.getRecentHistory(8)
   const isDecision = snapshot?.phase === 'awaitingDecision'
+  const isStealChoice = Boolean(stealChoiceInfo)
   const isGameOver = snapshot?.phase === 'gameOver'
 
-  const keyHints = isDecision
+  const keyHints = isStealChoice || isDecision
     ? '←/→ ou j/k naviguer | Entrée valider | w sauver | q quitter'
     : 'n nouvelle | l charger | w sauver | q quitter'
 
@@ -241,6 +266,18 @@ const App = () => {
         <Text color="cyanBright">Tour en cours</Text>
         <Text>Tour actif: {status.activeTurn}</Text>
         <Text>Lancer: {status.stagedRoll}</Text>
+        {isStealChoice && (
+          <>
+            <Text>
+              {stealDecisionIndex === 0 ? '▶ Voler' : '  Voler'} {'   '}
+              {stealDecisionIndex === 1 ? '▶ Refuser' : '  Refuser'}
+            </Text>
+            <Text color="yellow">
+              {stealChoiceInfo.playerName}, reprendre {stealChoiceInfo.carriedScore} pts avec{' '}
+              {stealChoiceInfo.diceToRoll} dé(s) ?
+            </Text>
+          </>
+        )}
         {isDecision && (
           <Text>
             Score projeté: {projectedTurnScore} (gardés: {autoKeptDice.join(',') || 'aucun'})
