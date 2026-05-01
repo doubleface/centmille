@@ -292,9 +292,10 @@ export class GameState {
     }
 
     const { turnScore, diceToRoll } = this.activeTurn
-    this.activeTurn = null
     this.pendingRoll = null
-    return this.endTurnByStopping(turnScore, diceToRoll)
+    const result = this.endTurnByStopping(turnScore, diceToRoll)
+    this.activeTurn = null
+    return result
   }
 
   isDiceSubset(subset, superset) {
