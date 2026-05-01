@@ -20,19 +20,20 @@ export const parsePlayersArg = (rawPlayers) => {
   return players.length >= 2 ? players : null
 }
 
-export const formatStatus = ({ hasActiveGame, snapshot, pendingRollDice }) => {
-  if (!hasActiveGame || !snapshot) {
+export const formatStatus = (snapshot) => {
+  if (!snapshot) {
     return {
       currentPlayer: 'aucun',
       winner: 'aucun',
       activeTurn: 'aucun',
-      stagedRoll: pendingRollDice ? pendingRollDice.join(',') : 'aucun',
+      stagedRoll: 'aucun',
       scores: ['Aucune partie active. Appuyez sur n pour commencer.'],
     }
   }
 
   const currentPlayer = snapshot.players[snapshot.currentPlayerIndex]
   const activeTurn = snapshot.activeTurn
+  const pendingRoll = snapshot.pendingRoll
 
   return {
     currentPlayer: currentPlayer.name,
@@ -40,7 +41,7 @@ export const formatStatus = ({ hasActiveGame, snapshot, pendingRollDice }) => {
     activeTurn: activeTurn
       ? `turnScore=${activeTurn.turnScore}, diceToRoll=${activeTurn.diceToRoll}, canSteal=${activeTurn.canSteal}`
       : 'aucun',
-    stagedRoll: pendingRollDice ? pendingRollDice.join(',') : 'aucun',
+    stagedRoll: pendingRoll ? pendingRoll.rolledDice.join(',') : 'aucun',
     scores: snapshot.players.map((player, index) => {
       const marker = index === snapshot.currentPlayerIndex ? '>' : ' '
       return `${marker} ${player.name}: ${player.score} pts (fails: ${player.failedTurnsInRow})`

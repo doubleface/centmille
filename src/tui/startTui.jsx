@@ -1,102 +1,127 @@
 import { Box, render, Text, useApp, useInput } from 'ink'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useState } from 'react'
 import { CliSession } from '../cli/CliSession.js'
+import { DiceScorer } from '../rules/DiceScorer.js'
 import { selectAutoKeptDice } from './autoKeep.js'
 import { DiceView } from './DiceView.jsx'
-import { formatStatus, parsePlayersArg } from './helpers.js'
 import { rollDice } from './dice.js'
+import { formatStatus, parsePlayersArg } from './helpers.js'
+
+const scorer = new DiceScorer()
+
+const readSnapshot = (session) => (session.hasActiveGame() ? session.getSnapshot() : null)
 
 const App = () => {
   const { exit } = useApp()
   const [session] = useState(() => new CliSession())
+  const [snapshot, setSnapshot] = useState(null)
   const [message, setMessage] = useState({ type: 'info', text: 'Prêt' })
   const [promptMode, setPromptMode] = useState(null)
   const [promptValue, setPromptValue] = useState('')
-  const [version, setVersion] = useState(0)
   const [decisionIndex, setDecisionIndex] = useState(0)
 
-  const refresh = () => setVersion((value) => value + 1)
-
-  const addHistory = (command, args, error = null) => {
+  const recordHistory = (command, args = [], error = null) => {
     session.addHistory({ at: new Date().toISOString(), command, args, ok: error === null, error })
   }
 
-  const execute = async (command, run, args = []) => {
+  const advance = () => {
+    let bustedThisTick = false
+    while (session.hasActiveGame()) {
+      const current = session.getSnapshot()
+      if (current.phase === 'awaitingDecision' || current.phase === 'gameOver') break
+
+      if (current.phase === 'awaitingTurnStart') {
+        session.dispatch({ type: 'start_turn' })
+        recordHistory('start-turn')
+        continue
+      }
+
+      if (current.phase === 'rolling') {
+        const dice = rollDice(current.activeTurn.diceToRoll)
+        const result = session.dispatch({ type: 'record_roll', rolledDice: dice })
+        recordHistory('roll-auto', [dice.join(',')])
+        if (result.type === 'failure') {
+          recordHistory('bust')
+          bustedThisTick = true
+        }
+        continue
+      }
+
+      break
+    }
+
+    if (bustedThisTick) {
+      setMessage({ type: 'error', text: 'Aucun dé scorant: tour échoué.' })
+    }
+    setSnapshot(readSnapshot(session))
+    setDecisionIndex(0)
+  }
+
+  const runSync = (label, fn, args = []) => {
     try {
-      await run()
-      addHistory(command, args)
-      refresh()
+      fn()
+      recordHistory(label, args)
+      advance()
     } catch (error) {
-      const messageText = error instanceof Error ? error.message : String(error)
-      setMessage({ type: 'error', text: `Erreur: ${messageText}` })
-      addHistory(command, args, messageText)
-      refresh()
+      const text = error instanceof Error ? error.message : String(error)
+      setMessage({ type: 'error', text: `Erreur: ${text}` })
+      recordHistory(label, args, text)
+      setSnapshot(readSnapshot(session))
     }
   }
 
-  const status = useMemo(() => {
-    const hasActiveGame = session.hasActiveGame()
-    return formatStatus({
-      hasActiveGame,
-      snapshot: hasActiveGame ? session.getSnapshot() : null,
-      pendingRollDice: session.pendingRollDice,
-    })
-  }, [session, version])
-
-  const runAutoRoll = () => {
-    if (!session.hasActiveGame()) throw new Error('Aucune partie active.')
-
-    const snapshot = session.getSnapshot()
-    const diceToRoll = snapshot.activeTurn?.diceToRoll ?? 5
-    const dice = rollDice(diceToRoll)
-
-    session.stageRoll(dice)
-    setMessage({ type: 'success', text: `Lancer auto: ${dice.join(',')}` })
+  const runAsync = async (label, fn, args = []) => {
+    try {
+      await fn()
+      recordHistory(label, args)
+      advance()
+    } catch (error) {
+      const text = error instanceof Error ? error.message : String(error)
+      setMessage({ type: 'error', text: `Erreur: ${text}` })
+      recordHistory(label, args, text)
+      setSnapshot(readSnapshot(session))
+    }
   }
 
-  useEffect(() => {
-    if (!promptMode && session.hasActiveGame() && !session.pendingRollDice) {
-      execute('roll-auto', () => {
-        runAutoRoll()
-      })
+  const submitPrompt = (mode, value) => {
+    if (mode === 'new') {
+      const players = parsePlayersArg(value)
+      if (!players) {
+        setMessage({ type: 'error', text: 'Erreur: Joueurs invalides. Utilisez Alice,Bob' })
+        return
+      }
+      runSync('new', () => {
+        session.newGame(players)
+        setMessage({ type: 'success', text: `Nouvelle partie: ${players.join(', ')}` })
+      }, [`--players=${value}`])
+      return
     }
-  }, [promptMode, session, version])
+
+    if (mode === 'load') {
+      runAsync('load', async () => {
+        await session.load(value)
+        setMessage({ type: 'success', text: `Chargé: ${value}` })
+      }, [`--file=${value}`])
+      return
+    }
+
+    if (mode === 'save') {
+      runAsync('save', async () => {
+        if (!session.hasActiveGame()) throw new Error('Aucune partie active.')
+        await session.save(value)
+        setMessage({ type: 'success', text: `Sauvegardé: ${value}` })
+      }, [`--file=${value}`])
+    }
+  }
 
   useInput((input, key) => {
     if (promptMode) {
       if (key.return) {
+        const mode = promptMode
         const value = promptValue
         setPromptMode(null)
         setPromptValue('')
-
-        if (promptMode === 'new') {
-          const players = parsePlayersArg(value)
-          if (!players) {
-            setMessage({ type: 'error', text: 'Erreur: Joueurs invalides. Utilisez Alice,Bob' })
-            return
-          }
-          execute('new', () => {
-            session.newGame(players)
-            setMessage({ type: 'success', text: `Nouvelle partie: ${players.join(', ')}` })
-          }, [`--players=${value}`])
-          return
-        }
-
-        if (promptMode === 'load') {
-          execute('load', async () => {
-            await session.load(value)
-            setMessage({ type: 'success', text: `Chargé: ${value}` })
-          }, [`--file=${value}`])
-          return
-        }
-
-        if (promptMode === 'save') {
-          execute('save', async () => {
-            if (!session.hasActiveGame()) throw new Error('Aucune partie active.')
-            await session.save(value)
-            setMessage({ type: 'success', text: `Sauvegardé: ${value}` })
-          }, [`--file=${value}`])
-        }
+        submitPrompt(mode, value)
         return
       }
 
@@ -111,11 +136,38 @@ const App = () => {
         return
       }
 
-      if (!key.ctrl && !key.meta && input) setPromptValue((current) => current + input)
+      if (!key.ctrl && !key.meta && input) {
+        setPromptValue((current) => current + input)
+      }
       return
     }
 
-    if (input === 'q' || key.escape || (key.ctrl && input === 'c')) return exit()
+    if (input === 'q' || (key.ctrl && input === 'c')) return exit()
+
+    if (snapshot?.phase === 'awaitingDecision') {
+      if (key.leftArrow || input === 'j') return setDecisionIndex(0)
+      if (key.rightArrow || input === 'k') return setDecisionIndex(1)
+      if (key.return) {
+        const keptDice = selectAutoKeptDice(snapshot.pendingRoll.rolledDice)
+        if (keptDice.length === 0) return
+
+        if (decisionIndex === 0) {
+          runSync('continue', () => {
+            session.dispatch({ type: 'keep', keptDice })
+            setMessage({ type: 'success', text: `Continue: dés gardés ${keptDice.join(',')}` })
+          })
+          return
+        }
+
+        runSync('stop', () => {
+          session.dispatch({ type: 'keep', keptDice })
+          session.dispatch({ type: 'stop_turn' })
+          setMessage({ type: 'success', text: 'Tour arrêté' })
+        })
+        return
+      }
+      return
+    }
 
     if (input === 'n') {
       setPromptMode('new')
@@ -129,61 +181,31 @@ const App = () => {
       setMessage({ type: 'info', text: 'Entrez le chemin du fichier à charger' })
       return
     }
-    if (session.hasActiveGame() && session.pendingRollDice) {
-      if (key.leftArrow || input === 'j') {
-        setDecisionIndex(0)
-        return
-      }
-
-      if (key.rightArrow || input === 'k') {
-        setDecisionIndex(1)
-        return
-      }
-
-      if (key.return) {
-        const keptDice = selectAutoKeptDice(session.pendingRollDice)
-        if (keptDice.length === 0) {
-          execute('fail', () => {
-            session.fail('bust')
-            setMessage({ type: 'error', text: 'Aucun dé scorant: tour échoué.' })
-          })
-          return
-        }
-
-        if (decisionIndex === 0) {
-          execute('continue', () => {
-            session.keep(keptDice)
-            runAutoRoll()
-            setMessage({ type: 'success', text: `Continue: dés gardés ${keptDice.join(',')}` })
-          })
-          return
-        }
-
-        execute('stop', () => {
-          session.keep(keptDice)
-          session.stop()
-          setMessage({ type: 'success', text: 'Tour arrêté' })
-        })
-      }
-
-      return
-    }
-    if (input === 'w') {
+    if (input === 'w' && snapshot) {
       setPromptMode('save')
       setPromptValue('')
       setMessage({ type: 'info', text: 'Entrez le chemin du fichier à sauvegarder' })
-      return
     }
-
   })
 
-  const autoKeptDice = session.pendingRollDice ? selectAutoKeptDice(session.pendingRollDice) : []
+  const status = formatStatus(snapshot)
+  const pendingRoll = snapshot?.pendingRoll
+  const autoKeptDice = pendingRoll ? selectAutoKeptDice(pendingRoll.rolledDice) : []
+  const keptScore = autoKeptDice.length > 0 ? scorer.scoreRoll(autoKeptDice).score : 0
+  const projectedTurnScore = (snapshot?.activeTurn?.turnScore ?? 0) + keptScore
+  const stop = snapshot?.stop
   const recentHistory = session.getRecentHistory(8)
+  const isDecision = snapshot?.phase === 'awaitingDecision'
+  const isGameOver = snapshot?.phase === 'gameOver'
+
+  const keyHints = isDecision
+    ? '←/→ ou j/k naviguer | Entrée valider | w sauver | q quitter'
+    : 'n nouvelle | l charger | w sauver | q quitter'
 
   return (
     <Box flexDirection="column" paddingX={1}>
       <Text color="greenBright">centmille TUI (ink)</Text>
-      <Text color="gray">q quitter | n nouvelle | l charger | w sauver</Text>
+      <Text color="gray">{keyHints}</Text>
       <Text color={message.type === 'error' ? 'red' : message.type === 'success' ? 'green' : 'yellow'}>
         {message.text}
       </Text>
@@ -198,22 +220,36 @@ const App = () => {
         <Text color="cyanBright">Scores</Text>
         <Text>Joueur courant: {status.currentPlayer}</Text>
         <Text>Gagnant: {status.winner}</Text>
-        {status.scores.map((line) => (
-          <Text key={line}>{line}</Text>
+        {status.scores.map((line, index) => (
+          <Text key={`score-${index}`}>{line}</Text>
         ))}
       </Box>
 
       <Box borderStyle="round" borderColor="cyan" flexDirection="column" paddingX={1} marginTop={1}>
         <Text color="cyanBright">Tour en cours</Text>
         <Text>Tour actif: {status.activeTurn}</Text>
-        <Text>Lancer saisi: {status.stagedRoll}</Text>
-        <Text>Dés préselectionnés: {autoKeptDice.length > 0 ? autoKeptDice.join(',') : 'aucun'}</Text>
-        <DiceView rolledDice={session.pendingRollDice} selectedDice={autoKeptDice} />
-        {session.pendingRollDice && (
+        <Text>Lancer: {status.stagedRoll}</Text>
+        {isDecision && (
           <Text>
-            {decisionIndex === 0 ? '▶ Continuer' : '  Continuer'}   {decisionIndex === 1 ? '▶ Arrêter' : '  Arrêter'}
-            {'  '} (←/→ ou j/k, Entrée pour valider)
+            Score projeté: {projectedTurnScore} (gardés: {autoKeptDice.join(',') || 'aucun'})
           </Text>
+        )}
+        <DiceView rolledDice={pendingRoll?.rolledDice ?? []} selectedDice={autoKeptDice} />
+        {isDecision && (
+          <>
+            <Text>
+              {decisionIndex === 0 ? '▶ Continuer' : '  Continuer'}
+              {'   '}
+              <Text color={stop?.canStop ? 'white' : 'gray'}>
+                {decisionIndex === 1 ? '▶ Arrêter' : '  Arrêter'}
+              </Text>
+            </Text>
+            {stop?.blockedReason && <Text color="yellow">Arrêt impossible: {stop.blockedReason}</Text>}
+            {stop?.warning && <Text color="yellow">⚠ {stop.warning}</Text>}
+          </>
+        )}
+        {isGameOver && (
+          <Text color="greenBright">Partie terminée — gagnant: {status.winner}</Text>
         )}
       </Box>
 
@@ -222,10 +258,10 @@ const App = () => {
         {recentHistory.length === 0 ? (
           <Text>- aucun</Text>
         ) : (
-          recentHistory.map((entry) => {
+          recentHistory.map((entry, index) => {
             const statusLabel = entry.ok ? 'ok' : `erreur: ${entry.error}`
             return (
-              <Text key={`${entry.at}-${entry.command}`}>
+              <Text key={`history-${index}`}>
                 - {entry.command} {entry.args.join(' ')} | {statusLabel}
               </Text>
             )

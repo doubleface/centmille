@@ -346,6 +346,118 @@ describe('GameState', () => {
     expect(restoredGame.getCurrentPlayer().name).toBe('Bob')
   })
 
+  it('records a pending roll then applies keep separately', () => {
+    const game = new GameState(['Alice', 'Bob'])
+    game.startTurn()
+
+    const recordResult = game.recordRoll([1, 5, 2, 2, 3])
+    expect(recordResult.type).toBe('rolled')
+    expect(recordResult.rolledDice).toEqual([1, 5, 2, 2, 3])
+    expect(game.getPhase()).toBe('awaitingDecision')
+    expect(game.getSnapshot().pendingRoll).toEqual({ rolledDice: [1, 5, 2, 2, 3] })
+
+    const keepResult = game.applyKeep([1, 5])
+    expect(keepResult.type).toBe('roll')
+    expect(keepResult.turnScore).toBe(150)
+    expect(game.getPhase()).toBe('rolling')
+    expect(game.getSnapshot().pendingRoll).toBeNull()
+  })
+
+  it('records a bust roll and ends the turn without pending roll', () => {
+    const game = new GameState(['Alice', 'Bob'])
+    game.startTurn()
+
+    const result = game.recordRoll([2, 3, 4, 6, 6])
+
+    expect(result.type).toBe('failure')
+    expect(game.pendingRoll).toBeNull()
+    expect(game.activeTurn).toBeNull()
+    expect(game.currentPlayerIndex).toBe(1)
+  })
+
+  it('rejects recordRoll when a pending roll already exists', () => {
+    const game = new GameState(['Alice', 'Bob'])
+    game.startTurn()
+    game.recordRoll([1, 5, 2, 2, 3])
+
+    expect(() => game.recordRoll([1, 1, 1, 1, 1])).toThrow('A roll is already pending')
+  })
+
+  it('rejects applyKeep without a pending roll', () => {
+    const game = new GameState(['Alice', 'Bob'])
+    game.startTurn()
+
+    expect(() => game.applyKeep([1])).toThrow('No pending roll')
+  })
+
+  it('serialises and restores a pending roll', () => {
+    const game = new GameState(['Alice', 'Bob'])
+    game.startTurn()
+    game.recordRoll([1, 5, 2, 2, 3])
+
+    const snapshot = game.getSnapshot()
+    const restored = GameState.fromSnapshot(snapshot)
+
+    expect(restored.getSnapshot()).toEqual(snapshot)
+    expect(restored.getPhase()).toBe('awaitingDecision')
+  })
+
+  it('exposes stop availability with French reasons', () => {
+    const game = new GameState(['Alice', 'Bob'])
+    expect(game.getStopAvailability()).toEqual({
+      canStop: false,
+      blockedReason: 'Aucun tour actif',
+      warning: null,
+    })
+
+    game.startTurn()
+    expect(game.getStopAvailability().blockedReason).toBe('Aucun dé gardé sur ce tour')
+
+    game.playRoll([1, 2, 3, 4, 6], [1])
+    expect(game.getStopAvailability()).toEqual({
+      canStop: false,
+      blockedReason: 'Ouverture impossible sous 500 points',
+      warning: null,
+    })
+  })
+
+  it('flags stop with overshoot warning when score would exceed target', () => {
+    const game = new GameState(['Alice', 'Bob'])
+    game.endTurnByStopping(9900, 0)
+    game.endTurnByStopping(500, 0)
+    game.startTurn()
+    game.playRoll([1, 1, 1, 2, 3], [1, 1, 1])
+
+    const availability = game.getStopAvailability()
+    expect(availability.canStop).toBe(true)
+    expect(availability.warning).toMatch(/Dépassement/)
+  })
+
+  it('flags stop blocked when turn score is not a multiple of 100', () => {
+    const game = new GameState(['Alice', 'Bob'])
+    game.players[0].hasOpened = true
+    game.startTurn()
+    game.activeTurn.turnScore = 150
+
+    expect(game.getStopAvailability().blockedReason).toBe(
+      'Le score du tour doit être un multiple de 100'
+    )
+  })
+
+  it('exposes phase awaitingTurnStart, rolling and gameOver', () => {
+    const game = new GameState(['Alice', 'Bob'])
+
+    expect(game.getPhase()).toBe('awaitingTurnStart')
+    expect(game.getSnapshot().phase).toBe('awaitingTurnStart')
+
+    game.startTurn()
+    expect(game.getPhase()).toBe('rolling')
+
+    game.endTurnByStopping(10000, 0)
+    expect(game.getPhase()).toBe('gameOver')
+    expect(game.getSnapshot().phase).toBe('gameOver')
+  })
+
   it('rejects invalid snapshot input', () => {
     expect(() => GameState.fromSnapshot(null)).toThrow('Snapshot must be an object')
     expect(() => GameState.fromSnapshot({ players: [] })).toThrow(

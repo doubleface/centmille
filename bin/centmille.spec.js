@@ -29,12 +29,12 @@ describe('centmille CLI integration', () => {
     expect(savedContent.snapshot.players[0].score).toBe(500)
 
     const secondSession = runInteractiveCli(
-      `load --file=${saveFile}\nstatus\nroll --dice=1,2,3,4,6\nstatus\nquit\n`
+      `load --file=${saveFile}\nstatus\nroll --dice=1,5\nstatus\nquit\n`
     )
 
     expect(secondSession.status).toBe(0)
     expect(secondSession.stdout).toContain('"command": "load"')
     expect(secondSession.stdout).toContain('Current player: Bob')
-    expect(secondSession.stdout).toContain('Staged roll: 1,2,3,4,6')
+    expect(secondSession.stdout).toContain('Staged roll: 1,5')
   })
 })

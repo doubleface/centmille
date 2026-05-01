@@ -37,11 +37,57 @@ export class GameState {
     this.diceScorer = options.diceScorer ?? new DiceScorer()
     this.lastValidatedTurn = null
     this.activeTurn = null
+    this.pendingRoll = null
     this.winner = null
   }
 
   getCurrentPlayer() {
     return this.players[this.currentPlayerIndex]
+  }
+
+  getStopAvailability() {
+    if (!this.activeTurn) {
+      return { canStop: false, blockedReason: 'Aucun tour actif', warning: null }
+    }
+
+    const { turnScore } = this.activeTurn
+    if (turnScore <= 0) {
+      return { canStop: false, blockedReason: 'Aucun dé gardé sur ce tour', warning: null }
+    }
+
+    if (!this.turnRules.canStop(turnScore)) {
+      return {
+        canStop: false,
+        blockedReason: 'Le score du tour doit être un multiple de 100',
+        warning: null,
+      }
+    }
+
+    const player = this.getCurrentPlayer()
+    if (!player.hasOpened && turnScore < this.openingScore) {
+      return {
+        canStop: false,
+        blockedReason: `Ouverture impossible sous ${this.openingScore} points`,
+        warning: null,
+      }
+    }
+
+    if (player.score + turnScore > this.targetScore) {
+      return {
+        canStop: true,
+        blockedReason: null,
+        warning: `Dépassement de ${this.targetScore}: arrêter mènerait à un échec`,
+      }
+    }
+
+    return { canStop: true, blockedReason: null, warning: null }
+  }
+
+  getPhase() {
+    if (this.winner) return 'gameOver'
+    if (!this.activeTurn) return 'awaitingTurnStart'
+    if (this.pendingRoll) return 'awaitingDecision'
+    return 'rolling'
   }
 
   getSnapshot() {
@@ -62,7 +108,10 @@ export class GameState {
       })),
       lastValidatedTurn: this.lastValidatedTurn ? { ...this.lastValidatedTurn } : null,
       activeTurn: this.activeTurn ? { ...this.activeTurn } : null,
+      pendingRoll: this.pendingRoll ? { rolledDice: [...this.pendingRoll.rolledDice] } : null,
       winnerIndex,
+      phase: this.getPhase(),
+      stop: this.getStopAvailability(),
     }
   }
 
@@ -86,6 +135,9 @@ export class GameState {
     game.currentPlayerIndex = snapshot.currentPlayerIndex
     game.lastValidatedTurn = snapshot.lastValidatedTurn ? { ...snapshot.lastValidatedTurn } : null
     game.activeTurn = snapshot.activeTurn ? { ...snapshot.activeTurn } : null
+    game.pendingRoll = snapshot.pendingRoll
+      ? { rolledDice: [...snapshot.pendingRoll.rolledDice] }
+      : null
 
     for (const [index, playerSnapshot] of snapshot.players.entries()) {
       const player = game.players[index]
@@ -159,9 +211,13 @@ export class GameState {
     return { ...this.activeTurn }
   }
 
-  playRoll(rolledDice, keptDice) {
+  recordRoll(rolledDice) {
     if (!this.activeTurn) {
       throw new Error('No active turn. Call startTurn first')
+    }
+
+    if (this.pendingRoll) {
+      throw new Error('A roll is already pending. Call applyKeep first')
     }
 
     if (rolledDice.length !== this.activeTurn.diceToRoll) {
@@ -174,9 +230,28 @@ export class GameState {
       return this.endTurnWithFailure()
     }
 
+    this.pendingRoll = { rolledDice: [...rolledDice] }
+    return {
+      type: 'rolled',
+      rolledDice: [...rolledDice],
+      rollScore: rollScore.score,
+    }
+  }
+
+  applyKeep(keptDice) {
+    if (!this.activeTurn) {
+      throw new Error('No active turn. Call startTurn first')
+    }
+
+    if (!this.pendingRoll) {
+      throw new Error('No pending roll. Call recordRoll first')
+    }
+
     if (!Array.isArray(keptDice) || keptDice.length === 0) {
       throw new Error('You must keep at least one scoring die')
     }
+
+    const rolledDice = this.pendingRoll.rolledDice
 
     if (!this.isDiceSubset(keptDice, rolledDice)) {
       throw new Error('Kept dice must be a subset of rolled dice')
@@ -190,12 +265,24 @@ export class GameState {
     this.activeTurn.turnScore += keptDiceScore.score
     const remainingDice = this.activeTurn.diceToRoll - keptDice.length
     this.activeTurn.diceToRoll = remainingDice === 0 ? this.diceCount : remainingDice
+    this.pendingRoll = null
 
     return {
       type: 'roll',
       turnScore: this.activeTurn.turnScore,
       diceToRoll: this.activeTurn.diceToRoll,
       keptScore: keptDiceScore.score,
+    }
+  }
+
+  playRoll(rolledDice, keptDice) {
+    const recordResult = this.recordRoll(rolledDice)
+    if (recordResult.type === 'failure') return recordResult
+    try {
+      return this.applyKeep(keptDice)
+    } catch (error) {
+      this.pendingRoll = null
+      throw error
     }
   }
 
@@ -206,6 +293,7 @@ export class GameState {
 
     const { turnScore, diceToRoll } = this.activeTurn
     this.activeTurn = null
+    this.pendingRoll = null
     return this.endTurnByStopping(turnScore, diceToRoll)
   }
 
@@ -226,6 +314,8 @@ export class GameState {
 
   endTurnWithFailure(reason = 'bust') {
     const player = this.getCurrentPlayer()
+    this.activeTurn = null
+    this.pendingRoll = null
     const failureResult = player.failTurn()
 
     if (failureResult.checkpointDrop) {

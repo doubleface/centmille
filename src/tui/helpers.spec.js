@@ -26,15 +26,13 @@ describe('tui helpers', () => {
 
   describe('formatStatus', () => {
     it('returns empty game status when no active game', () => {
-      expect(formatStatus({ hasActiveGame: false, snapshot: null, pendingRollDice: null })).toEqual(
-        {
-          currentPlayer: 'aucun',
-          winner: 'aucun',
-          activeTurn: 'aucun',
-          stagedRoll: 'aucun',
-          scores: ['Aucune partie active. Appuyez sur n pour commencer.'],
-        }
-      )
+      expect(formatStatus(null)).toEqual({
+        currentPlayer: 'aucun',
+        winner: 'aucun',
+        activeTurn: 'aucun',
+        stagedRoll: 'aucun',
+        scores: ['Aucune partie active. Appuyez sur n pour commencer.'],
+      })
     })
 
     it('formats snapshot status', () => {
@@ -42,13 +40,14 @@ describe('tui helpers', () => {
         currentPlayerIndex: 1,
         winnerIndex: null,
         activeTurn: { turnScore: 200, diceToRoll: 3, canSteal: false },
+        pendingRoll: { rolledDice: [1, 2, 3] },
         players: [
           { name: 'Alice', score: 500, failedTurnsInRow: 0 },
           { name: 'Bob', score: 1200, failedTurnsInRow: 1 },
         ],
       }
 
-      const status = formatStatus({ hasActiveGame: true, snapshot, pendingRollDice: [1, 2, 3] })
+      const status = formatStatus(snapshot)
 
       expect(status.currentPlayer).toBe('Bob')
       expect(status.winner).toBe('aucun')

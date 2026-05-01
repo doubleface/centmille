@@ -167,7 +167,8 @@ const runCommand = async (inputCommand, inputArgs = []) => {
         if (!ensureEngine()) break
 
         const snapshot = session.getSnapshot()
-        console.log(formatStatus(snapshot, session.pendingRollDice))
+        const stagedDice = snapshot.pendingRoll ? snapshot.pendingRoll.rolledDice : null
+        console.log(formatStatus(snapshot, stagedDice))
         break
       }
 
@@ -181,9 +182,13 @@ const runCommand = async (inputCommand, inputArgs = []) => {
           break
         }
 
-        session.stageRoll(dice)
-        debugCli('staged roll dice=%o', dice)
-        console.log(JSON.stringify({ command: 'roll', dice, staged: true }, null, 2))
+        if (session.getSnapshot().phase === 'awaitingTurnStart') {
+          session.dispatch({ type: 'start_turn' })
+        }
+
+        const result = session.dispatch({ type: 'record_roll', rolledDice: dice })
+        debugCli('record roll dice=%o result=%o', dice, result)
+        console.log(JSON.stringify({ command: 'roll', dice, result }, null, 2))
         break
       }
 
@@ -192,7 +197,7 @@ const runCommand = async (inputCommand, inputArgs = []) => {
 
         const keptDice = parseDiceArg(parsedArgs.dice)
 
-        if (!session.pendingRollDice) {
+        if (!session.getSnapshot().pendingRoll) {
           handleUserError('No staged roll.', 'Use: roll --dice=... first')
           break
         }
@@ -202,7 +207,7 @@ const runCommand = async (inputCommand, inputArgs = []) => {
           break
         }
 
-        const result = session.keep(keptDice)
+        const result = session.dispatch({ type: 'keep', keptDice })
         debugCli('keep dice=%o result=%o', keptDice, result)
 
         console.log(JSON.stringify({ command: 'keep', keptDice, result }, null, 2))
@@ -212,7 +217,7 @@ const runCommand = async (inputCommand, inputArgs = []) => {
       case 'stop': {
         if (!ensureEngine()) break
 
-        const result = session.stop()
+        const result = session.dispatch({ type: 'stop_turn' })
         debugCli('stop turn result=%o', result)
         console.log(JSON.stringify({ command: 'stop', result }, null, 2))
         break
@@ -221,7 +226,10 @@ const runCommand = async (inputCommand, inputArgs = []) => {
       case 'fail': {
         if (!ensureEngine()) break
 
-        const result = session.fail(parsedArgs.reason ?? 'bust')
+        const result = session.dispatch({
+          type: 'force_failure',
+          reason: parsedArgs.reason ?? 'bust',
+        })
         debugCli('force failure result=%o', result)
         console.log(JSON.stringify({ command: 'fail', result }, null, 2))
         break

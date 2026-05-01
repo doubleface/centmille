@@ -23,6 +23,10 @@ export class GameEngine {
         return this.gameState.startTurn()
       case 'roll':
         return this.gameState.playRoll(action.rolledDice, action.keptDice)
+      case 'record_roll':
+        return this.gameState.recordRoll(action.rolledDice)
+      case 'keep':
+        return this.gameState.applyKeep(action.keptDice)
       case 'stop_turn':
         return this.gameState.stopTurn()
       case 'force_failure':

@@ -63,4 +63,35 @@ export class DiceScorer {
 
     return { score, scoringDiceCount, combinations }
   }
+
+  getScoringDice(dice) {
+    if (!Array.isArray(dice) || dice.length === 0) return []
+
+    if (isStraight(dice)) return [...dice]
+
+    const counts = new Map()
+    for (const value of dice) {
+      counts.set(value, (counts.get(value) ?? 0) + 1)
+    }
+
+    const remaining = new Map()
+    for (const [value, count] of counts.entries()) {
+      if (count >= 3) {
+        remaining.set(value, count)
+      } else if (value === 1 || value === 5) {
+        remaining.set(value, count)
+      }
+    }
+
+    const scoringDice = []
+    for (const value of dice) {
+      const left = remaining.get(value) ?? 0
+      if (left > 0) {
+        scoringDice.push(value)
+        remaining.set(value, left - 1)
+      }
+    }
+
+    return scoringDice
+  }
 }
