@@ -1,17 +1,13 @@
 #!/usr/bin/env node
 
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, resolve } from 'node:path'
 import readline from 'node:readline'
 import createDebug from 'debug'
-import { GameEngine, GameState } from '../src/index.js'
+import { CliSession } from '../src/cli/CliSession.js'
 
 const [, , command, ...args] = process.argv
 
-let engine = null
-let pendingRollDice = null
+const session = new CliSession()
 let isQuitting = false
-let sessionHistory = []
 
 const debugCli = createDebug('centmille:cli')
 const debugCommand = createDebug('centmille:command')
@@ -57,37 +53,12 @@ const parsePlayersArg = (rawPlayers) => {
   return players.length >= 2 ? players : null
 }
 
-const validateSavePayload = (payload) => {
-  if (!payload || typeof payload !== 'object') {
-    throw new Error('Invalid save file: root JSON object expected')
-  }
-
-  if (!payload.metadata || typeof payload.metadata !== 'object') {
-    throw new Error('Invalid save file: missing metadata object')
-  }
-
-  if (payload.metadata.game !== 'centmille') {
-    throw new Error('Invalid save file: metadata.game must be "centmille"')
-  }
-
-  if (payload.metadata.formatVersion !== 1) {
-    throw new Error('Invalid save file: unsupported formatVersion')
-  }
-
-  if (!payload.snapshot || typeof payload.snapshot !== 'object') {
-    throw new Error('Invalid save file: missing snapshot object')
-  }
-}
-
 const recordAction = (entry) => {
-  sessionHistory.push(entry)
-  if (sessionHistory.length > 200) {
-    sessionHistory = sessionHistory.slice(-200)
-  }
+  session.addHistory(entry)
 }
 
 const ensureEngine = () => {
-  if (engine) return true
+  if (session.hasActiveGame()) return true
   handleUserError('No active game.', 'Start one with: new --players=Alice,Bob')
   return false
 }
@@ -112,7 +83,7 @@ const formatStatus = (snapshot, stagedDice) => {
 
   const winnerLabel = snapshot.winnerIndex === null ? 'none' : snapshot.players[snapshot.winnerIndex].name
 
-  const recentHistoryLines = sessionHistory.slice(-8).map((entry) => {
+  const recentHistoryLines = session.getRecentHistory(8).map((entry) => {
     const status = entry.ok ? 'ok' : `error: ${entry.error}`
     return `- ${entry.at} | ${entry.command} ${entry.args.join(' ')} | ${status}`
   })
@@ -170,9 +141,8 @@ const runCommand = async (inputCommand, inputArgs = []) => {
           break
         }
 
-        engine = GameEngine.create(players)
+        session.newGame(players)
         debugCli('new game created with players=%o', players)
-        pendingRollDice = null
         console.log(JSON.stringify({ command: 'new', players }, null, 2))
         break
       }
@@ -185,16 +155,8 @@ const runCommand = async (inputCommand, inputArgs = []) => {
           break
         }
 
-        const filePath = resolve(file)
-        const rawContent = await readFile(filePath, 'utf-8')
-        const payload = JSON.parse(rawContent)
-
-        validateSavePayload(payload)
-
-        const gameState = GameState.fromSnapshot(payload.snapshot)
-        engine = new GameEngine(gameState)
+        const { filePath } = await session.load(file)
         debugCli('game loaded from file=%s', filePath)
-        pendingRollDice = null
         console.log(JSON.stringify({ command: 'load', file: filePath, loaded: true }, null, 2))
         break
       }
@@ -202,8 +164,8 @@ const runCommand = async (inputCommand, inputArgs = []) => {
       case 'status': {
         if (!ensureEngine()) break
 
-        const snapshot = engine.dispatch({ type: 'snapshot' })
-        console.log(formatStatus(snapshot, pendingRollDice))
+        const snapshot = session.getSnapshot()
+        console.log(formatStatus(snapshot, session.pendingRollDice))
         break
       }
 
@@ -217,11 +179,7 @@ const runCommand = async (inputCommand, inputArgs = []) => {
           break
         }
 
-        if (!engine.getState().getActiveTurn()) {
-          engine.dispatch({ type: 'start_turn' })
-        }
-
-        pendingRollDice = dice
+        session.stageRoll(dice)
         debugCli('staged roll dice=%o', dice)
         console.log(JSON.stringify({ command: 'roll', dice, staged: true }, null, 2))
         break
@@ -232,7 +190,7 @@ const runCommand = async (inputCommand, inputArgs = []) => {
 
         const keptDice = parseDiceArg(parsedArgs.dice)
 
-        if (!pendingRollDice) {
+        if (!session.pendingRollDice) {
           handleUserError('No staged roll.', 'Use: roll --dice=... first')
           break
         }
@@ -242,14 +200,9 @@ const runCommand = async (inputCommand, inputArgs = []) => {
           break
         }
 
-        const result = engine.dispatch({
-          type: 'roll',
-          rolledDice: pendingRollDice,
-          keptDice,
-        })
+        const result = session.keep(keptDice)
         debugCli('keep dice=%o result=%o', keptDice, result)
 
-        pendingRollDice = null
         console.log(JSON.stringify({ command: 'keep', keptDice, result }, null, 2))
         break
       }
@@ -257,9 +210,8 @@ const runCommand = async (inputCommand, inputArgs = []) => {
       case 'stop': {
         if (!ensureEngine()) break
 
-        const result = engine.dispatch({ type: 'stop_turn' })
+        const result = session.stop()
         debugCli('stop turn result=%o', result)
-        pendingRollDice = null
         console.log(JSON.stringify({ command: 'stop', result }, null, 2))
         break
       }
@@ -267,12 +219,8 @@ const runCommand = async (inputCommand, inputArgs = []) => {
       case 'fail': {
         if (!ensureEngine()) break
 
-        const result = engine.dispatch({
-          type: 'force_failure',
-          reason: parsedArgs.reason ?? 'bust',
-        })
+        const result = session.fail(parsedArgs.reason ?? 'bust')
         debugCli('force failure result=%o', result)
-        pendingRollDice = null
         console.log(JSON.stringify({ command: 'fail', result }, null, 2))
         break
       }
@@ -286,19 +234,7 @@ const runCommand = async (inputCommand, inputArgs = []) => {
           break
         }
 
-        const filePath = resolve(file)
-        const payload = {
-          metadata: {
-            formatVersion: 1,
-            game: 'centmille',
-            savedAt: new Date().toISOString(),
-            source: 'cli',
-          },
-          snapshot: engine.dispatch({ type: 'snapshot' }),
-        }
-
-        await mkdir(dirname(filePath), { recursive: true })
-        await writeFile(filePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf-8')
+        const { filePath } = await session.save(file)
         debugCli('game saved to file=%s', filePath)
 
         console.log(JSON.stringify({ command: 'save', file: filePath, saved: true }, null, 2))

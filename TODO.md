@@ -42,7 +42,7 @@
 
 ## TUI (ink)
 - [x] Installer ink (+ react) et configurer les dépendances runtime <!-- pi-todo-md:id=32 -->
-- [ ] Extraire la logique de session CLI dans un module partagé (new/load/save/roll/keep/stop/fail/history) <!-- pi-todo-md:id=33 -->
+- [x] Extraire la logique de session CLI dans un module partagé (new/load/save/roll/keep/stop/fail/history) <!-- pi-todo-md:id=33 -->
 - [ ] Ajouter la commande `tui` dans `bin/centmille.js` et l’aide CLI <!-- pi-todo-md:id=34 -->
 - [ ] Créer le shell TUI ink (layout: scores, tour actif, dés en attente, historique, aide) <!-- pi-todo-md:id=35 -->
 - [ ] Implémenter les actions TUI: new, load, roll, keep, stop, fail, save, quit <!-- pi-todo-md:id=36 -->
