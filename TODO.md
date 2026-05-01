@@ -48,6 +48,11 @@
 - [x] Implémenter les actions TUI: new, load, roll, keep, stop, fail, save, quit <!-- pi-todo-md:id=36 -->
 - [x] Afficher les erreurs utilisateur dans la TUI (message bar non bloquante) <!-- pi-todo-md:id=37 -->
 - [x] Ajouter des helpers purs pour le rendu/parse input TUI et leurs tests unitaires <!-- pi-todo-md:id=38 -->
+- [x] Refondre le flux de tour TUI en mode auto-lancer (RNG interne) <!-- pi-todo-md:id=42 -->
+- [x] Implémenter la présélection automatique des dés scorants (auto-keep) <!-- pi-todo-md:id=43 -->
+- [x] Ajouter un affichage des dés en grand avec couleur pour la sélection <!-- pi-todo-md:id=44 -->
+- [ ] Implémenter le choix unique Continuer/Arrêter avec navigation flèches + j/k + Entrée <!-- pi-todo-md:id=45 -->
+- [ ] Ajouter une state machine TUI pure pour piloter les transitions de tour <!-- pi-todo-md:id=46 -->
 - [ ] Ajouter un test smoke d’intégration TUI (start puis quit) <!-- pi-todo-md:id=39 -->
 - [ ] Documenter la TUI dans README (quickstart, raccourcis, debug) <!-- pi-todo-md:id=40 -->
 - [ ] Valider final: npm run check, npm test, npm run test:coverage <!-- pi-todo-md:id=41 -->

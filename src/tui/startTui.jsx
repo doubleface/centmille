@@ -1,7 +1,10 @@
 import { Box, render, Text, useApp, useInput } from 'ink'
 import React, { useMemo, useState } from 'react'
 import { CliSession } from '../cli/CliSession.js'
-import { formatStatus, parseDiceArg, parsePlayersArg } from './helpers.js'
+import { selectAutoKeptDice } from './autoKeep.js'
+import { DiceView } from './DiceView.jsx'
+import { formatStatus, parsePlayersArg } from './helpers.js'
+import { rollDice } from './dice.js'
 
 const App = () => {
   const { exit } = useApp()
@@ -67,35 +70,6 @@ const App = () => {
           return
         }
 
-        if (promptMode === 'roll') {
-          const dice = parseDiceArg(value)
-          if (!dice) {
-            setMessage({ type: 'error', text: 'Erreur: Dés invalides. Utilisez 1,2,3,4,5' })
-            return
-          }
-          execute('roll', () => {
-            if (!session.hasActiveGame()) throw new Error('Aucune partie active.')
-            session.stageRoll(dice)
-            setMessage({ type: 'success', text: `Lancer saisi: ${dice.join(',')}` })
-          }, [`--dice=${value}`])
-          return
-        }
-
-        if (promptMode === 'keep') {
-          const keptDice = parseDiceArg(value)
-          if (!keptDice) {
-            setMessage({ type: 'error', text: 'Erreur: Dés gardés invalides. Utilisez 1,5' })
-            return
-          }
-          execute('keep', () => {
-            if (!session.hasActiveGame()) throw new Error('Aucune partie active.')
-            if (!session.pendingRollDice) throw new Error('Aucun lancer saisi.')
-            session.keep(keptDice)
-            setMessage({ type: 'success', text: `Dés gardés: ${keptDice.join(',')}` })
-          }, [`--dice=${value}`])
-          return
-        }
-
         if (promptMode === 'save') {
           execute('save', async () => {
             if (!session.hasActiveGame()) throw new Error('Aucune partie active.')
@@ -136,15 +110,29 @@ const App = () => {
       return
     }
     if (input === 'r') {
-      setPromptMode('roll')
-      setPromptValue('')
-      setMessage({ type: 'info', text: 'Entrez le lancer: 1,2,3,4,5' })
+      execute('roll', () => {
+        if (!session.hasActiveGame()) throw new Error('Aucune partie active.')
+
+        const snapshot = session.getSnapshot()
+        const diceToRoll = snapshot.activeTurn?.diceToRoll ?? 5
+        const dice = rollDice(diceToRoll)
+
+        session.stageRoll(dice)
+        setMessage({ type: 'success', text: `Lancer auto: ${dice.join(',')}` })
+      })
       return
     }
     if (input === 'k') {
-      setPromptMode('keep')
-      setPromptValue('')
-      setMessage({ type: 'info', text: 'Entrez les dés gardés: 1,5' })
+      execute('keep', () => {
+        if (!session.hasActiveGame()) throw new Error('Aucune partie active.')
+        if (!session.pendingRollDice) throw new Error('Aucun lancer saisi.')
+
+        const keptDice = selectAutoKeptDice(session.pendingRollDice)
+        if (keptDice.length === 0) throw new Error('Aucun dé scorant à garder.')
+
+        session.keep(keptDice)
+        setMessage({ type: 'success', text: `Dés auto-gardés: ${keptDice.join(',')}` })
+      })
       return
     }
     if (input === 'w') {
@@ -172,12 +160,13 @@ const App = () => {
     }
   })
 
+  const autoKeptDice = session.pendingRollDice ? selectAutoKeptDice(session.pendingRollDice) : []
   const recentHistory = session.getRecentHistory(8)
 
   return (
     <Box flexDirection="column" paddingX={1}>
       <Text color="greenBright">centmille TUI (ink)</Text>
-      <Text color="gray">q quitter | n nouvelle | l charger | r lancer | k garder | s stop | f échec | w sauver</Text>
+      <Text color="gray">q quitter | n nouvelle | l charger | r auto-lancer | k auto-garder | s stop | f échec | w sauver</Text>
       <Text color={message.type === 'error' ? 'red' : message.type === 'success' ? 'green' : 'yellow'}>
         {message.text}
       </Text>
@@ -201,6 +190,8 @@ const App = () => {
         <Text color="cyanBright">Tour en cours</Text>
         <Text>Tour actif: {status.activeTurn}</Text>
         <Text>Lancer saisi: {status.stagedRoll}</Text>
+        <Text>Dés préselectionnés: {autoKeptDice.length > 0 ? autoKeptDice.join(',') : 'aucun'}</Text>
+        <DiceView rolledDice={session.pendingRollDice} selectedDice={autoKeptDice} />
       </Box>
 
       <Box borderStyle="round" borderColor="cyan" flexDirection="column" paddingX={1} marginTop={1}>
