@@ -60,3 +60,20 @@
 - [x] Mettre à jour scenarios.spec.js pour la non-régression des résultats bust avec rolledDice <!-- pi-todo-md:id=52 -->
 - [x] Valider avec npx vitest run, npm run check et smoke test npm run tui <!-- pi-todo-md:id=53 -->
   - note: Validation OK: npx vitest run ✅ (11 files, 90 tests), npm run check ✅, smoke TUI validé dans tmux (lancement `npm run tui` en session tmux puis sortie via touche q).
+
+## Web mobile (plan)
+- [x] Extraire applyCollisionChain de GameState vers src/game/collisionChain.js (fonction pure + wrapper GameState) <!-- pi-todo-md:id=54 -->
+- [ ] Créer src/game/ManualGame.js (recordTurn, recordBust, undoLastEvent, snapshot/fromSnapshot) <!-- pi-todo-md:id=55 -->
+- [ ] Ajouter les tests src/game/ManualGame.spec.js (ouverture, victoire exacte, overshoot, collisions simples/chaîne, 3 busts, undo) <!-- pi-todo-md:id=56 -->
+- [ ] Étendre src/cli/saveFile.js pour distinguer les modes manual/dice (format version/mode) <!-- pi-todo-md:id=57 -->
+- [ ] Créer src/web/storage.js avec persistance localStorage (centmille:current-game) <!-- pi-todo-md:id=58 -->
+- [ ] Mettre en place le squelette web src/web/ (index.html, main.jsx, App.jsx, composants de base) <!-- pi-todo-md:id=59 -->
+- [ ] Implémenter useManualGame.js (état + actions + persistance) <!-- pi-todo-md:id=60 -->
+- [ ] Implémenter le rendu feuille manuscrite (PlayerColumn/ScoreRow + styles sheet.css: bust, downgrade, grille mobile-first) <!-- pi-todo-md:id=61 -->
+- [ ] Implémenter la saisie de score tour + actions Bust/Annuler (ScoreInput + validations) <!-- pi-todo-md:id=62 -->
+- [ ] Ajouter les scripts et config Vite (dev:web, build:web, preview:web, vite.config.js alias @game, sortie dist/web) <!-- pi-todo-md:id=63 -->
+- [ ] Mettre à jour vitest.config.js pour tests web jsdom <!-- pi-todo-md:id=64 -->
+- [ ] Ajouter les tests web minimum (useManualGame.spec.js + PlayerColumn.spec.jsx) <!-- pi-todo-md:id=65 -->
+- [ ] Exporter ManualGame depuis src/index.js <!-- pi-todo-md:id=66 -->
+- [ ] Vérifier en E2E local: dev:web (scénarios collision, 3 busts, victoire), reload localStorage, build/preview <!-- pi-todo-md:id=67 -->
+- [ ] Exécuter npm run test:coverage et corriger toute couverture manquante sur les fichiers modifiés <!-- pi-todo-md:id=68 -->

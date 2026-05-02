@@ -1,6 +1,7 @@
 import { DiceScorer } from '../rules/DiceScorer.js'
 import { TurnRules } from '../rules/TurnRules.js'
 import { PlayerState } from './PlayerState.js'
+import { applyCollisionChain } from './collisionChain.js'
 
 export class GameState {
   constructor(playerNames, options = {}) {
@@ -400,22 +401,9 @@ export class GameState {
   }
 
   applyCollisionChain(sourcePlayer) {
-    const queue = [sourcePlayer]
+    const sourcePlayerIndex = this.players.indexOf(sourcePlayer)
+    if (sourcePlayerIndex === -1) return
 
-    while (queue.length > 0) {
-      const triggerPlayer = queue.shift()
-
-      for (const candidate of this.players) {
-        if (candidate === triggerPlayer) continue
-        if (candidate.score !== triggerPlayer.score) continue
-
-        const previousScore = candidate.score
-        candidate.dropToPreviousCheckpoint()
-
-        if (candidate.score !== previousScore) {
-          queue.push(candidate)
-        }
-      }
-    }
+    applyCollisionChain(this.players, sourcePlayerIndex)
   }
 }
