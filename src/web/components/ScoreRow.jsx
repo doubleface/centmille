@@ -1,7 +1,9 @@
-export const ScoreRow = ({ label, variant }) => {
+export const ScoreRow = ({ label, variant = 'normal', isDowngraded = false }) => {
+  const rowClassName = `score-row ${variant === 'bust' ? 'bust' : ''} ${isDowngraded ? 'downgrade' : ''}`.trim()
+
   return (
-    <div data-variant={variant ?? 'normal'}>
-      <span>{label}</span>
+    <div className={rowClassName} data-variant={variant}>
+      <span>{label ?? ' '}</span>
     </div>
   )
 }

@@ -1,16 +1,30 @@
 import { PlayerColumn } from './PlayerColumn.jsx'
 import { ScoreInput } from './ScoreInput.jsx'
 
-export const GameScreen = ({ players }) => {
+export const GameScreen = ({
+  players,
+  rowsByPlayer = {},
+  currentPlayer,
+  onRecordTurn,
+  onRecordBust,
+  onUndo,
+  errorMessage,
+}) => {
   return (
-    <section>
-      <h1>Partie en cours</h1>
-      <div>
+    <section className="sheet-screen">
+      <h1 className="sheet-screen__title">Partie en cours</h1>
+      <div className="sheet-grid">
         {players.map((player) => (
-          <PlayerColumn key={player} name={player} rows={[]} />
+          <PlayerColumn key={player} name={player} rows={rowsByPlayer[player] ?? []} />
         ))}
       </div>
-      <ScoreInput />
+      <ScoreInput
+        currentPlayer={currentPlayer}
+        onValidate={onRecordTurn}
+        onBust={onRecordBust}
+        onUndo={onUndo}
+        errorMessage={errorMessage}
+      />
     </section>
   )
 }

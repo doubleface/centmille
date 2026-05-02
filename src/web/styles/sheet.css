@@ -1,0 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&display=swap');
+
+:root {
+  --sheet-line: #5f4936;
+  --sheet-paper: #fffaf2;
+}
+
+body {
+  margin: 0;
+  background: var(--sheet-paper);
+  font-family: 'Caveat', cursive;
+}
+
+.sheet-screen {
+  padding: 1rem;
+}
+
+.sheet-screen__title {
+  margin: 0 0 0.75rem;
+}
+
+.sheet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0;
+  border: 1px solid var(--sheet-line);
+  background: #fff;
+}
+
+.player-column {
+  min-height: 280px;
+  border-right: 1px solid var(--sheet-line);
+}
+
+.player-column:last-child {
+  border-right: none;
+}
+
+.player-column__header {
+  position: sticky;
+  top: 0;
+  margin: 0;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--sheet-line);
+  background: #fff;
+}
+
+.player-column__rows {
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+.score-row {
+  min-height: 2rem;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid rgba(95, 73, 54, 0.35);
+}
+
+.score-row.bust {
+  border-top: 3px solid var(--sheet-line);
+}
+
+.score-row.downgrade span {
+  text-decoration: line-through;
+}
