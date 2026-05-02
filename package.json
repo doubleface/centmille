@@ -15,7 +15,10 @@
     "format": "biome format --write .",
     "check": "biome check .",
     "cli": "node --import tsx ./bin/centmille.js",
-    "tui": "node --import tsx ./bin/centmille.js tui"
+    "tui": "node --import tsx ./bin/centmille.js tui",
+    "dev:web": "vite",
+    "build:web": "vite build",
+    "preview:web": "vite preview"
   },
   "keywords": [
     "dixmille",
@@ -27,12 +30,15 @@
   "dependencies": {
     "debug": "^4.4.3",
     "ink": "^6.8.0",
-    "react": "^19.2.5"
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.13",
+    "@vitejs/plugin-react": "^5.1.0",
     "@vitest/coverage-v8": "^4.1.5",
     "tsx": "^4.21.0",
+    "vite": "^7.1.12",
     "vitest": "^4.1.5"
   }
 }

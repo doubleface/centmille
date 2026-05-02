@@ -71,7 +71,7 @@
 - [x] Implémenter useManualGame.js (état + actions + persistance) <!-- pi-todo-md:id=60 -->
 - [x] Implémenter le rendu feuille manuscrite (PlayerColumn/ScoreRow + styles sheet.css: bust, downgrade, grille mobile-first) <!-- pi-todo-md:id=61 -->
 - [x] Implémenter la saisie de score tour + actions Bust/Annuler (ScoreInput + validations) <!-- pi-todo-md:id=62 -->
-- [ ] Ajouter les scripts et config Vite (dev:web, build:web, preview:web, vite.config.js alias @game, sortie dist/web) <!-- pi-todo-md:id=63 -->
+- [x] Ajouter les scripts et config Vite (dev:web, build:web, preview:web, vite.config.js alias @game, sortie dist/web) <!-- pi-todo-md:id=63 -->
 - [ ] Mettre à jour vitest.config.js pour tests web jsdom <!-- pi-todo-md:id=64 -->
 - [ ] Ajouter les tests web minimum (useManualGame.spec.js + PlayerColumn.spec.jsx) <!-- pi-todo-md:id=65 -->
 - [ ] Exporter ManualGame depuis src/index.js <!-- pi-todo-md:id=66 -->
