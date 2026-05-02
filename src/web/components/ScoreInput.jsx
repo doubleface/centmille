@@ -39,7 +39,7 @@ export const ScoreInput = ({
           Valider
         </button>
         <button type="button" onClick={onBust}>
-          Bust
+          Échec
         </button>
         <button type="button" onClick={onUndo}>
           Annuler
