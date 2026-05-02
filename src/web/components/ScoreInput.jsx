@@ -30,11 +30,18 @@ export const ScoreInput = ({ currentPlayer, onValidate, onBust, errorMessage }) 
         <input
           id="turn-score"
           name="turnScore"
+          type="tel"
           className="turn__score-input"
           inputMode="numeric"
+          pattern="[0-9]*"
           placeholder="0"
           value={rawTurnScore}
           onChange={(event) => setRawTurnScore(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter') return
+            event.preventDefault()
+            handleValidate()
+          }}
         />
       </div>
 
