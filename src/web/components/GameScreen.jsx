@@ -1,3 +1,4 @@
+import { CornerMenu } from './CornerMenu.jsx'
 import { PlayerColumn } from './PlayerColumn.jsx'
 import { ScoreInput } from './ScoreInput.jsx'
 
@@ -14,7 +15,8 @@ export const GameScreen = ({
   return (
     <section className="sheet-screen">
       <h1 className="sheet-screen__title">Partie en cours</h1>
-      <div className="sheet-grid">
+
+      <div className="scoreboard">
         {players.map((player) => (
           <PlayerColumn
             key={player}
@@ -24,14 +26,15 @@ export const GameScreen = ({
           />
         ))}
       </div>
+
       <ScoreInput
         currentPlayer={currentPlayer}
         onValidate={onRecordTurn}
         onBust={onRecordBust}
-        onUndo={onUndo}
-        onResetGame={onResetGame}
         errorMessage={errorMessage}
       />
+
+      <CornerMenu onUndo={onUndo} onResetGame={onResetGame} />
     </section>
   )
 }

@@ -1,73 +1,499 @@
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Kalam:wght@400;700&display=swap');
 
 :root {
-  --sheet-line: #5f4936;
-  --sheet-paper: #fffaf2;
+  --paper: #fbf6e9;
+  --ink: #1f3a8a;
+  --ink-soft: #3a55a8;
+  --ink-red: #b23a48;
+  --pencil: #4a4032;
+  --rule: #c9d4e8;
+  --margin-line: #e8a0a8;
+  --highlight: rgba(255, 226, 102, 0.55);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
+  min-height: 100dvh;
   margin: 0;
-  background: var(--sheet-paper);
-  font-family: 'Caveat', cursive;
+  overflow-x: hidden;
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 31px,
+    var(--rule) 31px,
+    var(--rule) 32px
+  );
+  color: var(--ink);
+  font-family: 'Kalam', 'Caveat', cursive;
 }
 
 .sheet-screen {
-  padding: 1rem;
+  position: relative;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.25rem 1.25rem 2rem 2.25rem;
+}
+
+.sheet-screen::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 1.5rem;
+  width: 1px;
+  background: var(--margin-line);
+  opacity: 0.7;
 }
 
 .sheet-screen__title {
-  margin: 0 0 0.75rem;
+  font-family: 'Caveat', cursive;
+  font-weight: 700;
+  font-size: 2.4rem;
+  margin: 0 0 1.25rem;
+  line-height: 1;
+  transform: rotate(-1deg);
+  color: var(--ink);
 }
 
-.sheet-grid {
+/* ---------- Champs ---------- */
+.field {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 0;
-  border: 1px solid var(--sheet-line);
-  background: #fff;
+  grid-template-columns: 90px 1fr auto;
+  align-items: end;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
-.player-column {
-  min-height: 280px;
-  border-right: 1px solid var(--sheet-line);
+.field__label {
+  font-family: 'Caveat', cursive;
+  font-size: 1.4rem;
+  color: var(--pencil);
 }
 
-.player-column--current {
-  background: rgba(255, 239, 204, 0.35);
+.field__input {
+  font-family: 'Kalam', cursive;
+  font-size: 1.25rem;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid var(--ink);
+  padding: 2px 4px;
+  outline: none;
+  line-height: 1.4;
+  min-width: 0;
 }
 
-.player-column:last-child {
-  border-right: none;
+.field__input:focus {
+  border-bottom-color: var(--ink-red);
+}
+
+.field__remove {
+  font-family: 'Caveat', cursive;
+  font-size: 1.6rem;
+  color: var(--ink-red);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 6px;
+  transform: rotate(8deg);
+}
+
+/* ---------- Boutons ---------- */
+.btn {
+  position: relative;
+  font-family: 'Caveat', cursive;
+  font-weight: 700;
+  font-size: 1.35rem;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  padding: 0.45rem 1.1rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: transform 0.08s ease;
+  z-index: 0;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--ink);
+  border-radius: 14px 6px 18px 8px / 8px 16px 6px 14px;
+  background: rgba(255, 255, 255, 0.4);
+  z-index: -1;
+}
+
+.btn:hover {
+  transform: translateY(-1px) rotate(-0.5deg);
+}
+
+.btn:hover::before {
+  background: rgba(255, 226, 102, 0.45);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn--primary {
+  color: #fff;
+}
+
+.btn--primary::before {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.btn--primary:hover::before {
+  background: var(--ink-soft);
+}
+
+.btn--danger {
+  color: var(--ink-red);
+}
+
+.btn--danger::before {
+  border-color: var(--ink-red);
+}
+
+.btn--ghost {
+  color: var(--pencil);
+  font-size: 1.2rem;
+}
+
+.btn--ghost::before {
+  border-style: dashed;
+  border-color: var(--pencil);
+  background: transparent;
+}
+
+.btn[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-row {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+/* ---------- Tableau de score ---------- */
+.scoreboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  border-top: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+  margin-top: 0.5rem;
+}
+
+.player-column + .player-column {
+  border-left: 2px solid var(--ink);
 }
 
 .player-column__header {
-  position: sticky;
-  top: 0;
+  font-family: 'Caveat', cursive;
+  font-weight: 700;
+  font-size: 1.7rem;
   margin: 0;
-  padding: 0.5rem;
-  border-bottom: 1px solid var(--sheet-line);
-  background: #fff;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1.5px solid var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+}
+
+.player-column--current .player-column__header {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(255, 226, 102, 0) 8%,
+    rgba(255, 226, 102, 0.7) 18%,
+    rgba(255, 226, 102, 0.7) 82%,
+    rgba(255, 226, 102, 0) 92%
+  );
+}
+
+.player-column__header::before {
+  content: '';
+  display: none;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 7px 0 7px 12px;
+  border-color: transparent transparent transparent var(--ink-red);
+  transform: rotate(-12deg);
+}
+
+.player-column--current .player-column__header::before {
+  display: inline-block;
 }
 
 .player-column__rows {
-  max-height: 55vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.player-column--current .player-column__rows {
+  background: rgba(255, 226, 102, 0.1);
 }
 
 .score-row {
-  min-height: 2rem;
-  padding: 0.25rem 0.5rem;
-  border-bottom: 1px solid rgba(95, 73, 54, 0.35);
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+  padding: 0.35rem 0.75rem;
+  font-size: 1.4rem;
+  min-height: 2.4rem;
+  border-bottom: 1px dashed rgba(31, 58, 138, 0.25);
 }
 
-.score-row.downgrade span:first-child {
+.score-row:last-child {
+  border-bottom: 0;
+}
+
+.score-row.downgrade > span:first-child {
   text-decoration: line-through;
+  text-decoration-color: var(--ink-red);
+  text-decoration-thickness: 2px;
 }
 
 .score-row__bust-marks {
-  font-weight: 600;
-  letter-spacing: 0.15rem;
+  font-family: 'Caveat', cursive;
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--ink-red);
+  letter-spacing: 0.25rem;
+  transform: rotate(-6deg);
+  display: inline-block;
+}
+
+/* ---------- Saisie de tour ---------- */
+.turn {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.turn > * {
+  min-width: 0;
+}
+
+.turn__player {
+  font-family: 'Caveat', cursive;
+  font-size: 1.6rem;
+  color: var(--pencil);
+}
+
+.turn__player strong {
+  color: var(--ink);
+  background: var(--highlight);
+  padding: 0 6px;
+  border-radius: 3px;
+  font-weight: 700;
+}
+
+.turn__score {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 4px;
+}
+
+.turn__score-label {
+  font-family: 'Caveat', cursive;
+  font-size: 1.4rem;
+  color: var(--pencil);
+}
+
+.turn__score-input {
+  flex: 1;
+  font-family: 'Kalam', cursive;
+  font-weight: 700;
+  font-size: 2rem;
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: var(--ink);
+  letter-spacing: 1px;
+  min-width: 0;
+}
+
+.label-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 1.5px solid var(--ink-red);
+  border-radius: 999px;
+  color: var(--ink-red);
+  font-family: 'Caveat', cursive;
+  font-size: 1.1rem;
+  margin-left: 0.5rem;
+  transform: rotate(-3deg);
+}
+
+.turn__error {
+  font-family: 'Caveat', cursive;
+  font-size: 1.3rem;
+  color: var(--ink-red);
+  margin: 0;
+}
+
+/* ---------- Coin corné + menu ---------- */
+.dogear {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 56px;
+  height: 56px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  z-index: 3;
+}
+
+.dogear::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 56px 56px 0;
+  border-color: transparent #efe4c5 transparent transparent;
+  filter: drop-shadow(-2px 2px 1px rgba(0, 0, 0, 0.12));
+  transition: border-width 0.15s ease;
+}
+
+.dogear::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 78px;
+  height: 1.5px;
+  background: rgba(0, 0, 0, 0.18);
+  transform-origin: top right;
+  transform: rotate(-45deg);
+}
+
+.dogear:hover::before {
+  border-width: 0 62px 62px 0;
+}
+
+.corner-menu {
+  position: absolute;
+  top: 52px;
+  right: 12px;
+  background: #fffdf5;
+  border: 1.5px solid var(--ink);
+  border-radius: 10px 4px 12px 6px / 6px 14px 4px 10px;
+  padding: 0.4rem 0.5rem;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+  min-width: 200px;
+  z-index: 4;
+  transform: rotate(-1deg);
+}
+
+.corner-menu::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  right: 18px;
+  width: 12px;
+  height: 12px;
+  background: #fffdf5;
+  border-left: 1.5px solid var(--ink);
+  border-top: 1.5px solid var(--ink);
+  transform: rotate(45deg);
+}
+
+.corner-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 0.4rem 0.6rem;
+  font-family: 'Caveat', cursive;
+  font-size: 1.3rem;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.corner-menu__item:hover {
+  background: var(--highlight);
+}
+
+.corner-menu__item[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.corner-menu__item--danger {
+  color: var(--ink-red);
+}
+
+.corner-menu__sep {
+  height: 1px;
+  background: rgba(31, 58, 138, 0.2);
+  margin: 4px 6px;
+}
+
+.corner-menu__icon {
+  width: 18px;
+  text-align: center;
+  font-size: 1.1rem;
+}
+
+.corner-menu__confirm {
+  padding: 0.25rem 0.4rem 0.4rem;
+}
+
+.corner-menu__confirm-title {
+  font-family: 'Caveat', cursive;
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: var(--ink-red);
+  margin: 0 0 0.4rem;
+}
+
+.corner-menu__confirm-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+/* ---------- Bandeau victoire ---------- */
+.winner-banner {
+  display: block;
+  margin: 1rem auto 0;
+  max-width: 720px;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--ink);
+  border-radius: 10px 4px 12px 6px / 6px 14px 4px 10px;
+  background: var(--highlight);
+  font-family: 'Caveat', cursive;
+  font-size: 1.5rem;
+  color: var(--ink);
+  text-align: center;
+  transform: rotate(-0.5deg);
+}
+
+.winner-banner strong {
+  font-weight: 700;
+  font-size: 1.7rem;
 }

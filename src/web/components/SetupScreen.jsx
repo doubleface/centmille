@@ -28,31 +28,41 @@ export const SetupScreen = ({ onStart }) => {
   const canStart = playerNames.map((name) => name.trim()).filter(Boolean).length >= MIN_PLAYERS
 
   return (
-    <section>
-      <h1>Nouvelle partie</h1>
+    <section className="sheet-screen">
+      <h1 className="sheet-screen__title">Nouvelle partie</h1>
       <form onSubmit={handleSubmit}>
         {playerNames.map((name, index) => (
-          <div key={`player-${index}`}>
-            <label htmlFor={`player-input-${index}`}>Joueur {index + 1}</label>
+          <div key={`player-${index}`} className="field">
+            <label className="field__label" htmlFor={`player-input-${index}`}>
+              Joueur {index + 1}
+            </label>
             <input
+              className="field__input"
               id={`player-input-${index}`}
               name={`player-${index}`}
               value={name}
               onChange={(event) => handlePlayerChange(index, event.target.value)}
             />
             {playerNames.length > MIN_PLAYERS ? (
-              <button type="button" onClick={() => handleRemovePlayer(index)}>
-                Supprimer
+              <button
+                type="button"
+                className="field__remove"
+                aria-label={`Supprimer joueur ${index + 1}`}
+                onClick={() => handleRemovePlayer(index)}
+              >
+                ✗
               </button>
             ) : null}
           </div>
         ))}
-        <button type="button" onClick={handleAddPlayer}>
-          + Ajouter un joueur
-        </button>
-        <button type="submit" disabled={!canStart}>
-          Commencer
-        </button>
+        <div className="btn-row">
+          <button type="button" className="btn btn--ghost" onClick={handleAddPlayer}>
+            + Ajouter un joueur
+          </button>
+          <button type="submit" className="btn btn--primary" disabled={!canStart}>
+            Commencer la partie
+          </button>
+        </div>
       </form>
     </section>
   )

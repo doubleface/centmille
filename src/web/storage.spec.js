@@ -36,7 +36,10 @@ describe('web storage', () => {
 
     window.localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ metadata: { game: 'centmille', formatVersion: 2, mode: 'manual' }, snapshot: null })
+      JSON.stringify({
+        metadata: { game: 'centmille', formatVersion: 2, mode: 'manual' },
+        snapshot: null,
+      })
     )
     expect(loadCurrentGame()).toBeNull()
   })
