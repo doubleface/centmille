@@ -17,6 +17,12 @@ describe('saveFile', () => {
     expect(() =>
       validateSavePayload({ metadata: { game: 'centmille', formatVersion: 1 }, snapshot: null })
     ).toThrow('missing snapshot object')
+    expect(() =>
+      validateSavePayload({
+        metadata: { game: 'centmille', formatVersion: 2, mode: 'unknown' },
+        snapshot: {},
+      })
+    ).toThrow('unsupported mode')
   })
 
   it('writes and reads a valid save file', async () => {
@@ -27,10 +33,23 @@ describe('saveFile', () => {
     const written = await writeSaveFile(file, snapshot)
     expect(written.filePath).toContain('save.json')
     expect(written.payload.metadata.game).toBe('centmille')
+    expect(written.payload.metadata.formatVersion).toBe(2)
+    expect(written.payload.metadata.mode).toBe('dice')
+
+    const manualFile = join(dir, 'manual-save.json')
+    const manualWritten = await writeSaveFile(manualFile, snapshot, { mode: 'manual' })
+    expect(manualWritten.payload.metadata.mode).toBe('manual')
 
     const loaded = await readSaveFile(file)
     expect(loaded.filePath).toBe(written.filePath)
     expect(loaded.payload.snapshot).toEqual(snapshot)
+  })
+
+  it('rejects unsupported write mode', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'centmille-save-mode-'))
+    const file = join(dir, 'save.json')
+
+    await expect(writeSaveFile(file, {}, { mode: 'foo' })).rejects.toThrow('Invalid save mode')
   })
 
   it('throws on invalid json content', async () => {

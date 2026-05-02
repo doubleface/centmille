@@ -1,6 +1,8 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 
+const SUPPORTED_MODES = ['dice', 'manual']
+
 export const validateSavePayload = (payload) => {
   if (!payload || typeof payload !== 'object') {
     throw new Error('Invalid save file: root JSON object expected')
@@ -14,8 +16,12 @@ export const validateSavePayload = (payload) => {
     throw new Error('Invalid save file: metadata.game must be "centmille"')
   }
 
-  if (payload.metadata.formatVersion !== 1) {
+  if (payload.metadata.formatVersion !== 1 && payload.metadata.formatVersion !== 2) {
     throw new Error('Invalid save file: unsupported formatVersion')
+  }
+
+  if (payload.metadata.formatVersion === 2 && !SUPPORTED_MODES.includes(payload.metadata.mode)) {
+    throw new Error('Invalid save file: unsupported mode')
   }
 
   if (!payload.snapshot || typeof payload.snapshot !== 'object') {
@@ -31,11 +37,17 @@ export const readSaveFile = async (file) => {
   return { filePath, payload }
 }
 
-export const writeSaveFile = async (file, snapshot) => {
+export const writeSaveFile = async (file, snapshot, options = {}) => {
+  const mode = options.mode ?? 'dice'
+  if (!SUPPORTED_MODES.includes(mode)) {
+    throw new Error('Invalid save mode')
+  }
+
   const filePath = resolve(file)
   const payload = {
     metadata: {
-      formatVersion: 1,
+      formatVersion: 2,
+      mode,
       game: 'centmille',
       savedAt: new Date().toISOString(),
       source: 'cli',
