@@ -72,8 +72,8 @@
 - [x] Implémenter le rendu feuille manuscrite (PlayerColumn/ScoreRow + styles sheet.css: bust, downgrade, grille mobile-first) <!-- pi-todo-md:id=61 -->
 - [x] Implémenter la saisie de score tour + actions Bust/Annuler (ScoreInput + validations) <!-- pi-todo-md:id=62 -->
 - [x] Ajouter les scripts et config Vite (dev:web, build:web, preview:web, vite.config.js alias @game, sortie dist/web) <!-- pi-todo-md:id=63 -->
-- [ ] Mettre à jour vitest.config.js pour tests web jsdom <!-- pi-todo-md:id=64 -->
-- [ ] Ajouter les tests web minimum (useManualGame.spec.js + PlayerColumn.spec.jsx) <!-- pi-todo-md:id=65 -->
-- [ ] Exporter ManualGame depuis src/index.js <!-- pi-todo-md:id=66 -->
-- [ ] Vérifier en E2E local: dev:web (scénarios collision, 3 busts, victoire), reload localStorage, build/preview <!-- pi-todo-md:id=67 -->
-- [ ] Exécuter npm run test:coverage et corriger toute couverture manquante sur les fichiers modifiés <!-- pi-todo-md:id=68 -->
+- [x] Mettre à jour vitest.config.js pour tests web jsdom <!-- pi-todo-md:id=64 -->
+- [x] Ajouter les tests web minimum (useManualGame.spec.js + PlayerColumn.spec.jsx) <!-- pi-todo-md:id=65 -->
+- [x] Exporter ManualGame depuis src/index.js <!-- pi-todo-md:id=66 -->
+- [x] Vérifier en E2E local: dev:web (scénarios collision, 3 busts, victoire), reload localStorage, build/preview <!-- pi-todo-md:id=67 -->
+- [x] Exécuter npm run test:coverage et corriger toute couverture manquante sur les fichiers modifiés <!-- pi-todo-md:id=68 -->

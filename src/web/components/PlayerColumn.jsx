@@ -1,3 +1,4 @@
+import React from 'react'
 import { ScoreRow } from './ScoreRow.jsx'
 
 export const PlayerColumn = ({ name, rows }) => {

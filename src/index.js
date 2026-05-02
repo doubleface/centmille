@@ -1,5 +1,6 @@
 export { GameEngine } from './game/GameEngine.js'
 export { GameState } from './game/GameState.js'
+export { ManualGame } from './game/ManualGame.js'
 export { PlayerState } from './game/PlayerState.js'
 export { DiceScorer } from './rules/DiceScorer.js'
 export { TurnRules } from './rules/TurnRules.js'

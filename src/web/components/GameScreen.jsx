@@ -8,6 +8,7 @@ export const GameScreen = ({
   onRecordTurn,
   onRecordBust,
   onUndo,
+  onResetGame,
   errorMessage,
 }) => {
   return (
@@ -23,6 +24,7 @@ export const GameScreen = ({
         onValidate={onRecordTurn}
         onBust={onRecordBust}
         onUndo={onUndo}
+        onResetGame={onResetGame}
         errorMessage={errorMessage}
       />
     </section>

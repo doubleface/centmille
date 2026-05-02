@@ -1,6 +1,13 @@
 import { useMemo, useState } from 'react'
 
-export const ScoreInput = ({ currentPlayer, onValidate, onBust, onUndo, errorMessage }) => {
+export const ScoreInput = ({
+  currentPlayer,
+  onValidate,
+  onBust,
+  onUndo,
+  onResetGame,
+  errorMessage,
+}) => {
   const [rawTurnScore, setRawTurnScore] = useState('')
 
   const turnScore = useMemo(() => Number.parseInt(rawTurnScore, 10), [rawTurnScore])
@@ -36,6 +43,9 @@ export const ScoreInput = ({ currentPlayer, onValidate, onBust, onUndo, errorMes
         </button>
         <button type="button" onClick={onUndo}>
           Annuler
+        </button>
+        <button type="button" onClick={onResetGame}>
+          Recommencer
         </button>
       </div>
     </section>

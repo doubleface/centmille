@@ -32,7 +32,7 @@ const buildRowsByPlayer = (snapshot) => {
 
 export const App = () => {
   const [errorMessage, setErrorMessage] = useState(null)
-  const { snapshot, startGame, recordTurn, recordBust, undoLastEvent } = useManualGame()
+  const { snapshot, startGame, recordTurn, recordBust, undoLastEvent, resetGame } = useManualGame()
 
   const players = snapshot ? snapshot.players.map((player) => player.name) : []
   const hasGame = players.length >= 2
@@ -77,6 +77,15 @@ export const App = () => {
     }
   }
 
+  const handleResetGame = () => {
+    try {
+      resetGame()
+      setErrorMessage(null)
+    } catch (error) {
+      setErrorMessage(error.message)
+    }
+  }
+
   return (
     <main>
       {!hasGame ? (
@@ -89,6 +98,7 @@ export const App = () => {
           onRecordTurn={handleRecordTurn}
           onRecordBust={handleRecordBust}
           onUndo={handleUndo}
+          onResetGame={handleResetGame}
           errorMessage={errorMessage}
         />
       )}

@@ -1,3 +1,5 @@
+import React from 'react'
+
 export const ScoreRow = ({ label, variant = 'normal', isDowngraded = false }) => {
   const rowClassName = `score-row ${variant === 'bust' ? 'bust' : ''} ${isDowngraded ? 'downgrade' : ''}`.trim()
 
