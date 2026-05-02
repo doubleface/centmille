@@ -13,6 +13,7 @@ export const PlayerColumn = ({ name, rows }) => {
             label={row.label}
             variant={row.variant}
             isDowngraded={row.isDowngraded}
+            bustCount={row.bustCount}
           />
         ))}
       </div>

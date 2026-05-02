@@ -54,12 +54,16 @@ body {
   min-height: 2rem;
   padding: 0.25rem 0.5rem;
   border-bottom: 1px solid rgba(95, 73, 54, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.score-row.bust {
-  border-top: 3px solid var(--sheet-line);
-}
-
-.score-row.downgrade span {
+.score-row.downgrade span:first-child {
   text-decoration: line-through;
+}
+
+.score-row__bust-marks {
+  font-weight: 600;
+  letter-spacing: 0.15rem;
 }

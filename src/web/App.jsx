@@ -4,7 +4,7 @@ import { SetupScreen } from './components/SetupScreen.jsx'
 import { WinnerBanner } from './components/WinnerBanner.jsx'
 import { useManualGame } from './hooks/useManualGame.js'
 
-const buildRowsByPlayer = (snapshot) => {
+export const buildRowsByPlayer = (snapshot) => {
   if (!snapshot) return {}
 
   const rowsByPlayer = Object.fromEntries(snapshot.players.map((player) => [player.name, []]))
@@ -13,15 +13,31 @@ const buildRowsByPlayer = (snapshot) => {
     const rows = rowsByPlayer[event.player] ?? []
 
     if (event.type === 'score') {
-      rows.push({ label: String(event.cumulative), variant: 'normal', isDowngraded: false })
+      rows.push({ label: String(event.cumulative), variant: 'normal', isDowngraded: false, bustCount: 0 })
     }
 
     if (event.type === 'bust') {
-      rows.push({ label: ' ', variant: 'bust', isDowngraded: false })
+      if (rows.length === 0) {
+        rows.push({ label: '—', variant: 'normal', isDowngraded: false, bustCount: 1 })
+      } else {
+        const lastRow = rows[rows.length - 1]
+        rows[rows.length - 1] = { ...lastRow, bustCount: (lastRow.bustCount ?? 0) + 1 }
+      }
     }
 
-    if (event.type === 'downgrade' && rows.length > 0) {
-      rows[rows.length - 1] = { ...rows[rows.length - 1], isDowngraded: true }
+    if (event.type === 'downgrade') {
+      const hasNoEffectiveScoreChange = event.from === event.to
+      if (hasNoEffectiveScoreChange) {
+        if (rows.length > 0) {
+          rows.pop()
+        }
+      } else {
+        if (rows.length > 0) {
+          rows[rows.length - 1] = { ...rows[rows.length - 1], isDowngraded: true }
+        }
+
+        rows.push({ label: String(event.to), variant: 'normal', isDowngraded: false, bustCount: 0 })
+      }
     }
 
     rowsByPlayer[event.player] = rows
