@@ -63,7 +63,7 @@
 
 ## Web mobile (plan)
 - [x] Extraire applyCollisionChain de GameState vers src/game/collisionChain.js (fonction pure + wrapper GameState) <!-- pi-todo-md:id=54 -->
-- [ ] Créer src/game/ManualGame.js (recordTurn, recordBust, undoLastEvent, snapshot/fromSnapshot) <!-- pi-todo-md:id=55 -->
+- [x] Créer src/game/ManualGame.js (recordTurn, recordBust, undoLastEvent, snapshot/fromSnapshot) <!-- pi-todo-md:id=55 -->
 - [ ] Ajouter les tests src/game/ManualGame.spec.js (ouverture, victoire exacte, overshoot, collisions simples/chaîne, 3 busts, undo) <!-- pi-todo-md:id=56 -->
 - [ ] Étendre src/cli/saveFile.js pour distinguer les modes manual/dice (format version/mode) <!-- pi-todo-md:id=57 -->
 - [ ] Créer src/web/storage.js avec persistance localStorage (centmille:current-game) <!-- pi-todo-md:id=58 -->
