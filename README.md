@@ -88,6 +88,25 @@ centmille> save --file=./save.json
 centmille> quit
 ```
 
+## Web mobile (manual mode)
+
+A mobile-first web UI is available under `src/web` to track scores while keeping physical dice.
+
+Key actions:
+- Enter turn score only (the app updates cumulative score)
+- `Échec` for failed turn
+- `Annuler` for undo
+- `Recommencer` to reset current game
+
+Persistence:
+- Current manual game is saved in `localStorage` under `centmille:current-game`.
+
+Run web app:
+- `npm run dev:web`
+- `npm run build:web`
+- `npm run preview:web`
+- `npm run preview:web:watch` (watch build + preview)
+
 ## Commands
 
 - `npm test`
