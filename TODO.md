@@ -67,7 +67,7 @@
 - [x] Ajouter les tests src/game/ManualGame.spec.js (ouverture, victoire exacte, overshoot, collisions simples/chaîne, 3 busts, undo) <!-- pi-todo-md:id=56 -->
 - [x] Étendre src/cli/saveFile.js pour distinguer les modes manual/dice (format version/mode) <!-- pi-todo-md:id=57 -->
 - [x] Créer src/web/storage.js avec persistance localStorage (centmille:current-game) <!-- pi-todo-md:id=58 -->
-- [ ] Mettre en place le squelette web src/web/ (index.html, main.jsx, App.jsx, composants de base) <!-- pi-todo-md:id=59 -->
+- [x] Mettre en place le squelette web src/web/ (index.html, main.jsx, App.jsx, composants de base) <!-- pi-todo-md:id=59 -->
 - [ ] Implémenter useManualGame.js (état + actions + persistance) <!-- pi-todo-md:id=60 -->
 - [ ] Implémenter le rendu feuille manuscrite (PlayerColumn/ScoreRow + styles sheet.css: bust, downgrade, grille mobile-first) <!-- pi-todo-md:id=61 -->
 - [ ] Implémenter la saisie de score tour + actions Bust/Annuler (ScoreInput + validations) <!-- pi-todo-md:id=62 -->
