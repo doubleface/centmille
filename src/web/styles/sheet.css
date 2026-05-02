@@ -32,6 +32,10 @@ body {
   border-right: 1px solid var(--sheet-line);
 }
 
+.player-column--current {
+  background: rgba(255, 239, 204, 0.35);
+}
+
 .player-column:last-child {
   border-right: none;
 }

@@ -24,6 +24,7 @@ export const ScoreInput = ({
 
   return (
     <section>
+      <p>Tour de: {currentPlayer?.name ?? '—'}</p>
       <label htmlFor="turn-score">Score du tour</label>
       <input
         id="turn-score"

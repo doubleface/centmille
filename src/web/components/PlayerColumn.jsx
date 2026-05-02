@@ -1,9 +1,11 @@
 import React from 'react'
 import { ScoreRow } from './ScoreRow.jsx'
 
-export const PlayerColumn = ({ name, rows }) => {
+export const PlayerColumn = ({ name, rows, isCurrentPlayer = false }) => {
+  const className = `player-column ${isCurrentPlayer ? 'player-column--current' : ''}`.trim()
+
   return (
-    <article className="player-column">
+    <article className={className}>
       <h2 className="player-column__header">{name}</h2>
       <div className="player-column__rows">
         {rows.length === 0 ? <ScoreRow label="—" /> : null}

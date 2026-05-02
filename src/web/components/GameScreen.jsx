@@ -16,7 +16,12 @@ export const GameScreen = ({
       <h1 className="sheet-screen__title">Partie en cours</h1>
       <div className="sheet-grid">
         {players.map((player) => (
-          <PlayerColumn key={player} name={player} rows={rowsByPlayer[player] ?? []} />
+          <PlayerColumn
+            key={player}
+            name={player}
+            rows={rowsByPlayer[player] ?? []}
+            isCurrentPlayer={currentPlayer?.name === player}
+          />
         ))}
       </div>
       <ScoreInput
