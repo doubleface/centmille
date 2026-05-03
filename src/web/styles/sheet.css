@@ -188,10 +188,21 @@ body {
 /* ---------- Tableau de score ---------- */
 .scoreboard {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(140px, 1fr);
+  overflow-x: auto;
   border-top: 2px solid var(--ink);
   border-bottom: 2px solid var(--ink);
   margin-top: 0.5rem;
+}
+
+.player-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.player-column__rows {
+  flex: 1;
 }
 
 .player-column + .player-column {
@@ -204,7 +215,7 @@ body {
   font-size: 1.7rem;
   margin: 0;
   padding: 0.4rem 0.75rem;
-  border-bottom: 1.5px solid var(--ink);
+  border-top: 1.5px solid var(--ink);
   display: flex;
   align-items: center;
   gap: 0.4rem;

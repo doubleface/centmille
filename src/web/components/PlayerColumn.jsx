@@ -1,12 +1,21 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { ScoreRow } from './ScoreRow.jsx'
 
 export const PlayerColumn = ({ name, rows, isCurrentPlayer = false }) => {
   const className = `player-column ${isCurrentPlayer ? 'player-column--current' : ''}`.trim()
+  const articleRef = useRef(null)
+
+  useEffect(() => {
+    if (!isCurrentPlayer || !articleRef.current) return
+    const column = articleRef.current
+    const scroller = column.parentElement
+    if (!scroller) return
+    const target = column.offsetLeft - (scroller.clientWidth - column.offsetWidth) / 2
+    scroller.scrollTo({ left: target, behavior: 'smooth' })
+  }, [isCurrentPlayer])
 
   return (
-    <article className={className}>
-      <h2 className="player-column__header">{name}</h2>
+    <article ref={articleRef} className={className}>
       <div className="player-column__rows">
         {rows.length === 0 ? <ScoreRow label="—" /> : null}
         {rows.map((row, index) => (
@@ -19,6 +28,7 @@ export const PlayerColumn = ({ name, rows, isCurrentPlayer = false }) => {
           />
         ))}
       </div>
+      <h2 className="player-column__header">{name}</h2>
     </article>
   )
 }
