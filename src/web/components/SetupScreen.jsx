@@ -41,6 +41,7 @@ export const SetupScreen = ({ onStart }) => {
               id={`player-input-${index}`}
               name={`player-${index}`}
               value={name}
+              onFocus={(event) => event.target.select()}
               onChange={(event) => handlePlayerChange(index, event.target.value)}
             />
             {playerNames.length > MIN_PLAYERS ? (
