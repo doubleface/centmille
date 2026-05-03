@@ -1,6 +1,13 @@
-import { useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 
-export const ScoreInput = ({ currentPlayer, onValidate, onBust, errorMessage }) => {
+export const ScoreInput = ({
+  currentPlayer,
+  onValidate,
+  onBust,
+  errorMessage,
+  isLocked = false,
+  lockMessage = null,
+}) => {
   const [rawTurnScore, setRawTurnScore] = useState('')
 
   const turnScore = useMemo(() => Number.parseInt(rawTurnScore, 10), [rawTurnScore])
@@ -8,7 +15,7 @@ export const ScoreInput = ({ currentPlayer, onValidate, onBust, errorMessage }) 
   const isPositiveStep = isScoreInteger && turnScore >= 50 && turnScore % 50 === 0
   const needsOpening = Boolean(currentPlayer && !currentPlayer.hasOpened)
   const isOpeningBlocked = needsOpening && turnScore < 500
-  const canValidate = isPositiveStep && !isOpeningBlocked
+  const canValidate = isPositiveStep && !isOpeningBlocked && !isLocked
 
   const handleValidate = () => {
     if (!canValidate) return
@@ -28,6 +35,7 @@ export const ScoreInput = ({ currentPlayer, onValidate, onBust, errorMessage }) 
           Score du tour
         </label>
         <input
+          disabled={isLocked}
           id="turn-score"
           name="turnScore"
           type="tel"
@@ -46,6 +54,7 @@ export const ScoreInput = ({ currentPlayer, onValidate, onBust, errorMessage }) 
       </div>
 
       {errorMessage ? <p className="turn__error">{errorMessage}</p> : null}
+      {isLocked && lockMessage ? <p className="turn__error">{lockMessage}</p> : null}
 
       <div className="btn-row">
         <button
@@ -56,7 +65,7 @@ export const ScoreInput = ({ currentPlayer, onValidate, onBust, errorMessage }) 
         >
           Valider
         </button>
-        <button type="button" className="btn btn--danger" onClick={onBust}>
+        <button type="button" className="btn btn--danger" onClick={onBust} disabled={isLocked}>
           Échec
         </button>
       </div>

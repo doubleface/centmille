@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { describe, expect, it } from 'vitest'
-import { buildRowsByPlayer } from './App.jsx'
+import { buildCollisionReviewQueue, buildRowsByPlayer } from './App.jsx'
 
 describe('buildRowsByPlayer', () => {
   it('renders three failures as marks then appends downgrade score', () => {
@@ -45,5 +45,19 @@ describe('buildRowsByPlayer', () => {
     const rowsByPlayer = buildRowsByPlayer(snapshot)
 
     expect(rowsByPlayer.Alice).toEqual([])
+  })
+
+  it('builds a collision review queue for effective downgrades', () => {
+    const actionEvents = [
+      { type: 'score', player: 'Alice', cumulative: 1200 },
+      { type: 'downgrade', player: 'Bob', from: 1800, to: 1000 },
+      { type: 'downgrade', player: 'Charly', from: 500, to: 500 },
+      { type: 'downgrade', player: 'Alice', from: 1200, to: 900 },
+    ]
+
+    expect(buildCollisionReviewQueue(actionEvents)).toEqual([
+      { player: 'Bob', from: 1800, to: 1000 },
+      { player: 'Alice', from: 1200, to: 900 },
+    ])
   })
 })

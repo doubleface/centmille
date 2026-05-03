@@ -18,4 +18,12 @@ describe('PlayerColumn', () => {
     expect(scoreRow?.className).toContain('downgrade')
     expect(screen.getByText('✗✗')).toBeTruthy()
   })
+
+  it('highlights the column when player is current collision target', () => {
+    const { container } = render(<PlayerColumn name="Alice" rows={[{ label: '500' }]} isCollisionTarget />)
+
+    expect(container.querySelector('.player-column')?.className).toContain(
+      'player-column--collision-target'
+    )
+  })
 })

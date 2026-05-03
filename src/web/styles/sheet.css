@@ -256,6 +256,14 @@ body {
   background: rgba(255, 226, 102, 0.1);
 }
 
+.player-column--collision-target .player-column__rows {
+  background: rgba(178, 58, 72, 0.14);
+}
+
+.player-column--collision-target .player-column__header {
+  color: var(--ink-red);
+}
+
 .score-row {
   display: flex;
   justify-content: space-between;
@@ -284,6 +292,21 @@ body {
   letter-spacing: 0.25rem;
   transform: rotate(-6deg);
   display: inline-block;
+}
+
+.collision-review {
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.collision-review__title {
+  margin: 0;
+  font-family: 'Caveat', cursive;
+  font-size: 1.35rem;
+  color: var(--ink-red);
 }
 
 /* ---------- Saisie de tour ---------- */
