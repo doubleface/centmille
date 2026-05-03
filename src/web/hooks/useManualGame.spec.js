@@ -48,13 +48,40 @@ describe('useManualGame', () => {
     act(() => {
       result.current.undoLastEvent()
     })
-    expect(result.current.snapshot?.events.at(-1)?.type).toBe('bust')
+    expect(result.current.snapshot?.events.at(-1)?.type).toBe('score')
 
     act(() => {
       result.current.resetGame()
     })
     expect(result.current.snapshot).toBeNull()
     expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
+  })
+
+  it('undoes multiple events in sequence', () => {
+    const { result } = renderHook(() => useManualGame())
+
+    act(() => {
+      result.current.startGame(['Alice', 'Bob'])
+    })
+    act(() => {
+      result.current.recordTurn(500)
+    })
+    act(() => {
+      result.current.recordBust()
+    })
+
+    act(() => {
+      result.current.undoLastEvent()
+    })
+    expect(result.current.snapshot?.events).toHaveLength(1)
+    expect(result.current.snapshot?.events.at(-1)?.type).toBe('score')
+
+    act(() => {
+      result.current.undoLastEvent()
+    })
+    expect(result.current.snapshot?.events).toHaveLength(0)
+    expect(result.current.snapshot?.players[0].score).toBe(0)
+    expect(result.current.snapshot?.currentPlayerIndex).toBe(0)
   })
 
   it('throws when acting without active game', () => {

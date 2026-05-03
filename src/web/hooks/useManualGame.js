@@ -16,11 +16,12 @@ const restoreGameFromStorage = () => {
 
 export const useManualGame = () => {
   const [game, setGame] = useState(() => restoreGameFromStorage())
+  const [revision, setRevision] = useState(0)
 
   const snapshot = useMemo(() => {
     if (!game) return null
     return game.getSnapshot()
-  }, [game])
+  }, [game, revision])
 
   const startGame = (playerNames, options = {}) => {
     const nextGame = new ManualGame(playerNames, options)
@@ -35,7 +36,7 @@ export const useManualGame = () => {
 
     const actionEvents = game.recordTurn(turnScore)
     saveCurrentGame(game.getSnapshot())
-    setGame(ManualGame.fromSnapshot(game.getSnapshot()))
+    setRevision((value) => value + 1)
 
     return actionEvents
   }
@@ -45,7 +46,7 @@ export const useManualGame = () => {
 
     const actionEvents = game.recordBust()
     saveCurrentGame(game.getSnapshot())
-    setGame(ManualGame.fromSnapshot(game.getSnapshot()))
+    setRevision((value) => value + 1)
 
     return actionEvents
   }
@@ -57,7 +58,7 @@ export const useManualGame = () => {
     if (!restoredSnapshot) return null
 
     saveCurrentGame(restoredSnapshot)
-    setGame(ManualGame.fromSnapshot(restoredSnapshot))
+    setRevision((value) => value + 1)
 
     return restoredSnapshot
   }
@@ -65,6 +66,7 @@ export const useManualGame = () => {
   const resetGame = () => {
     clearCurrentGame()
     setGame(null)
+    setRevision(0)
   }
 
   return {
