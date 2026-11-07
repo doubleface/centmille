@@ -26,17 +26,12 @@ export const buildRowsByPlayer = (snapshot) => {
     }
 
     if (event.type === 'downgrade') {
-      const hasNoEffectiveScoreChange = event.from === event.to
-      if (hasNoEffectiveScoreChange) {
-        if (rows.length > 0) {
-          rows.pop()
+      if (rows.length > 0) {
+        rows[rows.length - 1] = {
+          ...rows[rows.length - 1],
+          isDowngraded: true,
+          bustCount: 0,
         }
-      } else {
-        if (rows.length > 0) {
-          rows[rows.length - 1] = { ...rows[rows.length - 1], isDowngraded: true }
-        }
-
-        rows.push({ label: String(event.to), variant: 'normal', isDowngraded: false, bustCount: 0 })
       }
     }
 

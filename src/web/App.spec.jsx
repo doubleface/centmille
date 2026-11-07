@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { buildCollisionReviewQueue, buildRowsByPlayer } from './App.jsx'
 
 describe('buildRowsByPlayer', () => {
-  it('renders three failures as marks then appends downgrade score', () => {
+  it('bars a score without re-displaying the previous score', () => {
     const snapshot = {
       players: [{ name: 'Alice' }, { name: 'Bob' }],
       events: [
@@ -18,33 +18,36 @@ describe('buildRowsByPlayer', () => {
 
     const rowsByPlayer = buildRowsByPlayer(snapshot)
 
-    expect(rowsByPlayer.Alice).toHaveLength(2)
+    // No re-display: single row, score barred, bust marks cleared
+    expect(rowsByPlayer.Alice).toHaveLength(1)
     expect(rowsByPlayer.Alice[0]).toMatchObject({
       label: '1200',
       isDowngraded: true,
-      bustCount: 3,
-    })
-    expect(rowsByPlayer.Alice[1]).toMatchObject({
-      label: '500',
-      isDowngraded: false,
       bustCount: 0,
     })
   })
 
-  it('removes temporary failure marks when downgrade keeps same score', () => {
+  it('bars a score and clears the bust marks on that score', () => {
     const snapshot = {
       players: [{ name: 'Alice' }, { name: 'Bob' }],
       events: [
+        { type: 'score', player: 'Alice', cumulative: 1200 },
         { type: 'bust', player: 'Alice' },
         { type: 'bust', player: 'Alice' },
         { type: 'bust', player: 'Alice' },
-        { type: 'downgrade', player: 'Alice', from: 0, to: 0 },
+        { type: 'downgrade', player: 'Alice', from: 1200, to: 1200 },
       ],
     }
 
     const rowsByPlayer = buildRowsByPlayer(snapshot)
 
-    expect(rowsByPlayer.Alice).toEqual([])
+    // Score is barred, bust marks are cleared
+    expect(rowsByPlayer.Alice).toHaveLength(1)
+    expect(rowsByPlayer.Alice[0]).toMatchObject({
+      label: '1200',
+      isDowngraded: true,
+      bustCount: 0,
+    })
   })
 
   it('builds a collision review queue for effective downgrades', () => {
