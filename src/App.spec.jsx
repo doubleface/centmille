@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { describe, expect, it } from 'vitest'
-import { buildCollisionReviewQueue, buildRowsByPlayer } from './App.jsx'
+import { describe, expect, it, vi } from 'vitest'
+import { buildCollisionReviewQueue, buildRowsByPlayer, playDowngradeSound } from './App.jsx'
 
 describe('buildRowsByPlayer', () => {
   it('bars a score without re-displaying the previous score', () => {
@@ -62,5 +62,50 @@ describe('buildRowsByPlayer', () => {
       { player: 'Bob', from: 1800, to: 1000 },
       { player: 'Alice', from: 1200, to: 900 },
     ])
+    expect(buildCollisionReviewQueue(null)).toEqual([])
+  })
+
+  it('handles null snapshot and initial bust before any score', () => {
+    expect(buildRowsByPlayer(null)).toEqual({})
+
+    const rowsByPlayer = buildRowsByPlayer({
+      players: [{ name: 'Alice' }, { name: 'Bob' }],
+      events: [{ type: 'bust', player: 'Alice' }],
+    })
+    expect(rowsByPlayer.Alice).toEqual([
+      { label: '—', variant: 'normal', isDowngraded: false, bustCount: 1 },
+    ])
+  })
+
+  it('synthesizes the dramatic downgrade sound when AudioContext is available', () => {
+    const startMock = vi.fn()
+    const stopMock = vi.fn()
+    const connectMock = vi.fn()
+
+    window.AudioContext = class {
+      currentTime = 0
+      destination = {}
+      createGain() {
+        return {
+          gain: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+          connect: connectMock,
+        }
+      }
+      createOscillator() {
+        return {
+          type: 'sine',
+          frequency: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+          connect: connectMock,
+          start: startMock,
+          stop: stopMock,
+        }
+      }
+    }
+
+    playDowngradeSound()
+
+    expect(startMock).toHaveBeenCalledTimes(8)
+    expect(stopMock).toHaveBeenCalledTimes(8)
+    delete window.AudioContext
   })
 })

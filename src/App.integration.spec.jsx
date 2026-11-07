@@ -89,4 +89,49 @@ describe('App collision review', () => {
 
     expect(scrollToMock.mock.calls.length).toBeGreaterThan(callCountDuringReview)
   })
+
+  it('plays downgrade sound on 3-bust downgrade and handles bust/undo/reset', () => {
+    const startMock = vi.fn()
+    window.AudioContext = class {
+      currentTime = 0
+      destination = {}
+      createGain() {
+        return {
+          gain: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+          connect: vi.fn(),
+        }
+      }
+      createOscillator() {
+        return {
+          type: 'sine',
+          frequency: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+          connect: vi.fn(),
+          start: startMock,
+          stop: vi.fn(),
+        }
+      }
+    }
+
+    mockRecordBust.mockReturnValue([
+      { type: 'bust', player: 'Alice' },
+      { type: 'downgrade', player: 'Alice', from: 1000, to: 500 },
+    ])
+
+    render(<App />)
+
+    fireEvent.click(screen.getByText('Échec'))
+    expect(mockRecordBust).toHaveBeenCalled()
+    expect(startMock).toHaveBeenCalledTimes(8)
+
+    fireEvent.click(screen.getByLabelText('Menu de la partie'))
+    fireEvent.click(screen.getByText('Annuler le dernier tour'))
+    expect(mockUndoLastEvent).toHaveBeenCalled()
+
+    fireEvent.click(screen.getByLabelText('Menu de la partie'))
+    fireEvent.click(screen.getByText('Recommencer la partie'))
+    fireEvent.click(screen.getByText('Confirmer'))
+    expect(mockResetGame).toHaveBeenCalled()
+
+    delete window.AudioContext
+  })
 })

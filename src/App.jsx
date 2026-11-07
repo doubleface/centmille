@@ -49,6 +49,36 @@ export const buildCollisionReviewQueue = (actionEvents) => {
     .map((event) => ({ player: event.player, from: event.from, to: event.to }))
 }
 
+export const playDowngradeSound = () => {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext
+  if (!AudioCtx) return
+
+  const ctx = new AudioCtx()
+  const notes = [
+    { freqs: [146.83, 293.66], start: 0, duration: 0.16, endRatio: 1 },
+    { freqs: [138.59, 277.18], start: 0.19, duration: 0.16, endRatio: 1 },
+    { freqs: [65.41, 130.81, 196.0, 261.63], start: 0.38, duration: 0.9, endRatio: 0.92 },
+  ]
+
+  for (const { freqs, start, duration, endRatio } of notes) {
+    const t0 = ctx.currentTime + start
+    const gain = ctx.createGain()
+    gain.gain.setValueAtTime(0.22, t0)
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + duration)
+    gain.connect(ctx.destination)
+
+    for (const freq of freqs) {
+      const osc = ctx.createOscillator()
+      osc.type = 'sawtooth'
+      osc.frequency.setValueAtTime(freq, t0)
+      osc.frequency.exponentialRampToValueAtTime(freq * endRatio, t0 + duration)
+      osc.connect(gain)
+      osc.start(t0)
+      osc.stop(t0 + duration)
+    }
+  }
+}
+
 export const App = () => {
   const [errorMessage, setErrorMessage] = useState(null)
   const [collisionReviewQueue, setCollisionReviewQueue] = useState([])
@@ -75,6 +105,9 @@ export const App = () => {
     try {
       const actionEvents = recordTurn(turnScore)
       const queue = buildCollisionReviewQueue(actionEvents)
+      if (queue.length > 0) {
+        playDowngradeSound()
+      }
       setCollisionReviewQueue(queue)
       setCollisionReviewIndex(0)
       setErrorMessage(null)
@@ -86,7 +119,10 @@ export const App = () => {
   const handleRecordBust = () => {
     try {
       if (collisionReviewQueue.length > 0) return
-      recordBust()
+      const actionEvents = recordBust()
+      if (buildCollisionReviewQueue(actionEvents).length > 0) {
+        playDowngradeSound()
+      }
       setErrorMessage(null)
     } catch (error) {
       setErrorMessage(error.message)
@@ -134,6 +170,7 @@ export const App = () => {
     }
 
     setCollisionReviewIndex((value) => value + 1)
+    playDowngradeSound()
   }
 
   return (
