@@ -20,6 +20,10 @@ L'application reproduit fidèlement la feuille de score papier (colonnes des jou
 
 ```text
 ├── index.html                  # Point d'entrée HTML
+├── public/
+│   ├── icon.svg                # Icône de l'application (PWA)
+│   ├── manifest.webmanifest    # Manifeste Web App (mode plein écran standalone)
+│   └── sw.js                   # Service Worker (cache hors-ligne autonome)
 ├── src/
 │   ├── main.jsx                # Point d'entrée React
 │   ├── App.jsx                 # Composant racine et orchestration de l'interface
@@ -47,6 +51,9 @@ npm run build
 # Prévisualiser le build de production
 npm run preview
 
+# Compiler et partager temporairement en HTTPS pour installer la PWA sur mobile
+npm run share
+
 # Lancer les tests unitaires
 npm run test
 
@@ -58,3 +65,23 @@ npm run check
 npm run lint
 npm run format
 ```
+
+## Installation sur mobile (PWA autonome sans serveur permanent)
+
+L'application peut être installée sur l'écran d'accueil d'un téléphone (Android / iOS) et fonctionner ensuite **100 % hors-ligne**, sans aucun serveur allumé.
+
+Les navigateurs mobiles exigeant une connexion `HTTPS` pour activer le Service Worker et la mise en cache hors-ligne, la commande `npm run share` ouvre un tunnel HTTPS éphémère (`localhost.run`) le temps de l'installation :
+
+1. Sur l'ordinateur, lancer :
+   ```bash
+   npm run share
+   ```
+2. Dans le terminal, scanner le **QR code** affiché (ou ouvrir l'URL `https://xxxx.lhr.life` sur le téléphone dans Chrome ou Safari).
+3. Attendre 1 à 2 secondes que la page soit affichée (le bundle complet HTML/CSS/JS est automatiquement mis en cache par le Service Worker).
+4. Dans le menu du navigateur mobile, choisir **« Ajouter à l'écran d'accueil »** (ou **« Installer l'application »**).
+5. Couper la commande sur l'ordinateur avec `Ctrl+C`.
+
+L'application se lance désormais depuis son icône sur le téléphone en plein écran et fonctionne de manière totalement autonome (même en mode avion).
+
+> **Note pour les mises à jour :** Chaque exécution de `npm run share` générant une nouvelle URL temporaire `*.lhr.life`, installer une nouvelle version nécessitera de supprimer l'ancienne icône et de répéter l'opération.
+
