@@ -22,8 +22,8 @@ const gameSnapshot = {
   events: [],
 }
 
-vi.mock('./hooks/useManualGame.js', () => ({
-  useManualGame: () => ({
+vi.mock('./hooks/useGame.js', () => ({
+  useGame: () => ({
     snapshot: gameSnapshot,
     startGame: mockStartGame,
     recordTurn: mockRecordTurn,

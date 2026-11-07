@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { PlayerState } from './PlayerState.js'
 import { applyCollisionChain } from './collisionChain.js'
+import { PlayerState } from './PlayerState.js'
 
 describe('applyCollisionChain', () => {
   it('applies chained checkpoint drops', () => {

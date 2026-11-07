@@ -1,11 +1,11 @@
-import { TurnRules } from '../rules/TurnRules.js'
 import { applyCollisionChain } from './collisionChain.js'
 import { PlayerState } from './PlayerState.js'
+import { TurnRules } from './TurnRules.js'
 
-export class ManualGame {
+export class Game {
   constructor(playerNames, options = {}) {
     if (!Array.isArray(playerNames) || playerNames.length < 2) {
-      throw new Error('ManualGame requires at least 2 players')
+      throw new Error('Game requires at least 2 players')
     }
 
     const hasInvalidPlayerName = playerNames.some(
@@ -133,7 +133,7 @@ export class ManualGame {
     const lastAction = this.undoStack.pop()
     if (!lastAction) return null
 
-    const restored = ManualGame.fromSnapshot(lastAction.previousSnapshot)
+    const restored = Game.fromSnapshot(lastAction.previousSnapshot)
     this.players = restored.players
     this.currentPlayerIndex = restored.currentPlayerIndex
     this.winner = restored.winner
@@ -176,7 +176,7 @@ export class ManualGame {
     }
 
     const playerNames = snapshot.players.map((player) => player.name)
-    const game = new ManualGame(playerNames, {
+    const game = new Game(playerNames, {
       targetScore: snapshot.targetScore,
       openingScore: snapshot.openingScore,
     })

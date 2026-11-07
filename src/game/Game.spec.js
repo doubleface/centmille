@@ -1,26 +1,26 @@
 import { describe, expect, it } from 'vitest'
-import { ManualGame } from './ManualGame.js'
+import { Game } from './Game.js'
 
-describe('ManualGame', () => {
+describe('Game', () => {
   it('rejects invalid constructor and options', () => {
-    expect(() => new ManualGame(['Alice'])).toThrow('ManualGame requires at least 2 players')
-    expect(() => new ManualGame(['Alice', ''])).toThrow('Player names must be non-empty strings')
-    expect(() => new ManualGame(['Alice', 'Bob'], { targetScore: 0 })).toThrow(
+    expect(() => new Game(['Alice'])).toThrow('Game requires at least 2 players')
+    expect(() => new Game(['Alice', ''])).toThrow('Player names must be non-empty strings')
+    expect(() => new Game(['Alice', 'Bob'], { targetScore: 0 })).toThrow(
       'targetScore must be a positive integer'
     )
-    expect(() => new ManualGame(['Alice', 'Bob'], { openingScore: -1 })).toThrow(
+    expect(() => new Game(['Alice', 'Bob'], { openingScore: -1 })).toThrow(
       'openingScore must be a non-negative integer'
     )
   })
 
   it('forbids opening below openingScore', () => {
-    const game = new ManualGame(['Alice', 'Bob'])
+    const game = new Game(['Alice', 'Bob'])
 
     expect(() => game.recordTurn(400)).toThrow('Cannot open below 500 points')
   })
 
   it('marks winner on exact target score', () => {
-    const game = new ManualGame(['Alice', 'Bob'])
+    const game = new Game(['Alice', 'Bob'])
     const alice = game.players[0]
 
     alice.hasOpened = true
@@ -40,7 +40,7 @@ describe('ManualGame', () => {
   })
 
   it('rejects overshoot', () => {
-    const game = new ManualGame(['Alice', 'Bob'])
+    const game = new Game(['Alice', 'Bob'])
     const alice = game.players[0]
 
     alice.hasOpened = true
@@ -51,7 +51,7 @@ describe('ManualGame', () => {
   })
 
   it('applies simple collision downgrade', () => {
-    const game = new ManualGame(['Alice', 'Bob'])
+    const game = new Game(['Alice', 'Bob'])
 
     game.recordTurn(500)
     game.recordTurn(500)
@@ -67,7 +67,7 @@ describe('ManualGame', () => {
   })
 
   it('applies chained collisions', () => {
-    const game = new ManualGame(['Alice', 'Bob', 'Charlie'])
+    const game = new Game(['Alice', 'Bob', 'Charlie'])
     const [alice, bob, charlie] = game.players
 
     alice.hasOpened = true
@@ -103,7 +103,7 @@ describe('ManualGame', () => {
   })
 
   it('drops to checkpoint after 3 busts', () => {
-    const game = new ManualGame(['Alice', 'Bob'])
+    const game = new Game(['Alice', 'Bob'])
     const alice = game.players[0]
 
     alice.hasOpened = true
@@ -128,7 +128,7 @@ describe('ManualGame', () => {
   })
 
   it('undoes last action from snapshot', () => {
-    const game = new ManualGame(['Alice', 'Bob'])
+    const game = new Game(['Alice', 'Bob'])
 
     game.recordTurn(500)
     const beforeBust = game.getSnapshot()
@@ -141,20 +141,20 @@ describe('ManualGame', () => {
   })
 
   it('returns null when undo stack is empty', () => {
-    const game = new ManualGame(['Alice', 'Bob'])
+    const game = new Game(['Alice', 'Bob'])
 
     expect(game.undoLastEvent()).toBeNull()
   })
 
   it('rejects invalid turn score values', () => {
-    const game = new ManualGame(['Alice', 'Bob'])
+    const game = new Game(['Alice', 'Bob'])
 
     expect(() => game.recordTurn(0)).toThrow('turnScore must be a positive integer')
     expect(() => game.recordTurn(150)).toThrow('Cannot stop on a non-multiple of 100')
   })
 
   it('rejects actions once a winner exists', () => {
-    const game = new ManualGame(['Alice', 'Bob'])
+    const game = new Game(['Alice', 'Bob'])
     game.players[0].hasOpened = true
     game.players[0].score = 9900
     game.players[0].checkpointHistory = [0, 9900]
@@ -166,18 +166,18 @@ describe('ManualGame', () => {
   })
 
   it('serializes and restores state from snapshot', () => {
-    const game = new ManualGame(['Alice', 'Bob'])
+    const game = new Game(['Alice', 'Bob'])
     game.recordTurn(500)
 
     const snapshot = game.getSnapshot()
-    const restored = ManualGame.fromSnapshot(snapshot)
+    const restored = Game.fromSnapshot(snapshot)
 
     expect(restored.getSnapshot()).toEqual(snapshot)
   })
 
   it('rejects invalid snapshot input', () => {
-    expect(() => ManualGame.fromSnapshot(null)).toThrow('Snapshot must be an object')
-    expect(() => ManualGame.fromSnapshot({ players: [] })).toThrow(
+    expect(() => Game.fromSnapshot(null)).toThrow('Snapshot must be an object')
+    expect(() => Game.fromSnapshot({ players: [] })).toThrow(
       'Snapshot must contain at least 2 players'
     )
   })
@@ -207,7 +207,7 @@ describe('ManualGame', () => {
       winnerIndex: null,
     }
 
-    const restored = ManualGame.fromSnapshot(snapshot)
+    const restored = Game.fromSnapshot(snapshot)
     expect(restored.players[0].checkpointHistory).toEqual([0, 500])
     expect(restored.events).toEqual([])
   })

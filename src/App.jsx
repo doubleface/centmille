@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { GameScreen } from './components/GameScreen.jsx'
 import { SetupScreen } from './components/SetupScreen.jsx'
 import { WinnerBanner } from './components/WinnerBanner.jsx'
-import { useManualGame } from './hooks/useManualGame.js'
+import { useGame } from './hooks/useGame.js'
 
 export const buildRowsByPlayer = (snapshot) => {
   if (!snapshot) return {}
@@ -53,7 +53,7 @@ export const App = () => {
   const [errorMessage, setErrorMessage] = useState(null)
   const [collisionReviewQueue, setCollisionReviewQueue] = useState([])
   const [collisionReviewIndex, setCollisionReviewIndex] = useState(0)
-  const { snapshot, startGame, recordTurn, recordBust, undoLastEvent, resetGame } = useManualGame()
+  const { snapshot, startGame, recordTurn, recordBust, undoLastEvent, resetGame } = useGame()
 
   const players = snapshot ? snapshot.players.map((player) => player.name) : []
   const hasGame = players.length >= 2

@@ -2,16 +2,16 @@
 
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import { STORAGE_KEY } from '../storage.js'
-import { useManualGame } from './useManualGame.js'
+import { STORAGE_KEY } from '../storage/storage.js'
+import { useGame } from './useGame.js'
 
 afterEach(() => {
   window.localStorage.clear()
 })
 
-describe('useManualGame', () => {
-  it('persists and restores a manual game snapshot', () => {
-    const { result, unmount } = renderHook(() => useManualGame())
+describe('useGame', () => {
+  it('persists and restores a game snapshot', () => {
+    const { result, unmount } = renderHook(() => useGame())
 
     act(() => {
       result.current.startGame(['Alice', 'Bob'])
@@ -24,14 +24,14 @@ describe('useManualGame', () => {
     expect(window.localStorage.getItem(STORAGE_KEY)).toBeTruthy()
 
     unmount()
-    const restored = renderHook(() => useManualGame())
+    const restored = renderHook(() => useGame())
 
     expect(restored.result.current.snapshot?.players[0].score).toBe(500)
     expect(restored.result.current.snapshot?.currentPlayerIndex).toBe(1)
   })
 
   it('supports bust, undo and reset', () => {
-    const { result } = renderHook(() => useManualGame())
+    const { result } = renderHook(() => useGame())
 
     act(() => {
       result.current.startGame(['Alice', 'Bob'])
@@ -58,7 +58,7 @@ describe('useManualGame', () => {
   })
 
   it('undoes multiple events in sequence', () => {
-    const { result } = renderHook(() => useManualGame())
+    const { result } = renderHook(() => useGame())
 
     act(() => {
       result.current.startGame(['Alice', 'Bob'])
@@ -85,11 +85,11 @@ describe('useManualGame', () => {
   })
 
   it('throws when acting without active game', () => {
-    const { result } = renderHook(() => useManualGame())
+    const { result } = renderHook(() => useGame())
 
-    expect(() => result.current.recordTurn(500)).toThrow('No active manual game')
-    expect(() => result.current.recordBust()).toThrow('No active manual game')
-    expect(() => result.current.undoLastEvent()).toThrow('No active manual game')
+    expect(() => result.current.recordTurn(500)).toThrow('No active game')
+    expect(() => result.current.recordBust()).toThrow('No active game')
+    expect(() => result.current.undoLastEvent()).toThrow('No active game')
   })
 
   it('clears storage when snapshot cannot be restored', () => {
@@ -101,7 +101,7 @@ describe('useManualGame', () => {
       })
     )
 
-    const { result } = renderHook(() => useManualGame())
+    const { result } = renderHook(() => useGame())
 
     expect(result.current.snapshot).toBeNull()
     expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()

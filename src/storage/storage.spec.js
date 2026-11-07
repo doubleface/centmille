@@ -2,10 +2,10 @@
 
 import { afterEach, describe, expect, it } from 'vitest'
 import {
-  STORAGE_KEY,
   clearCurrentGame,
   loadCurrentGame,
   makeManualSavePayload,
+  STORAGE_KEY,
   saveCurrentGame,
 } from './storage.js'
 

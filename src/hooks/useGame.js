@@ -1,30 +1,31 @@
 import { useMemo, useState } from 'react'
-import { ManualGame } from '../../game/ManualGame.js'
-import { clearCurrentGame, loadCurrentGame, saveCurrentGame } from '../storage.js'
+import { Game } from '../game/Game.js'
+import { clearCurrentGame, loadCurrentGame, saveCurrentGame } from '../storage/storage.js'
 
 const restoreGameFromStorage = () => {
   const payload = loadCurrentGame()
   if (!payload) return null
 
   try {
-    return ManualGame.fromSnapshot(payload.snapshot)
+    return Game.fromSnapshot(payload.snapshot)
   } catch {
     clearCurrentGame()
     return null
   }
 }
 
-export const useManualGame = () => {
+export const useGame = () => {
   const [game, setGame] = useState(() => restoreGameFromStorage())
   const [revision, setRevision] = useState(0)
 
   const snapshot = useMemo(() => {
     if (!game) return null
+    void revision
     return game.getSnapshot()
   }, [game, revision])
 
   const startGame = (playerNames, options = {}) => {
-    const nextGame = new ManualGame(playerNames, options)
+    const nextGame = new Game(playerNames, options)
     saveCurrentGame(nextGame.getSnapshot())
     setGame(nextGame)
 
@@ -32,7 +33,7 @@ export const useManualGame = () => {
   }
 
   const recordTurn = (turnScore) => {
-    if (!game) throw new Error('No active manual game')
+    if (!game) throw new Error('No active game')
 
     const actionEvents = game.recordTurn(turnScore)
     saveCurrentGame(game.getSnapshot())
@@ -42,7 +43,7 @@ export const useManualGame = () => {
   }
 
   const recordBust = () => {
-    if (!game) throw new Error('No active manual game')
+    if (!game) throw new Error('No active game')
 
     const actionEvents = game.recordBust()
     saveCurrentGame(game.getSnapshot())
@@ -52,7 +53,7 @@ export const useManualGame = () => {
   }
 
   const undoLastEvent = () => {
-    if (!game) throw new Error('No active manual game')
+    if (!game) throw new Error('No active game')
 
     const restoredSnapshot = game.undoLastEvent()
     if (!restoredSnapshot) return null

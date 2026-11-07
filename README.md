@@ -1,117 +1,60 @@
 # centmille
 
-Technical rules engine for the dice game "10 000".
+Feuille de marque mobile pour le jeu des **10 000** (dés réels, score numérique).
+
+L'application reproduit fidèlement la feuille de score papier (colonnes des joueurs, scores successifs, barrement des scores rétrogradés, bâtons d'échecs `|`, `||`, `|||`) tout en automatisant les règles :
+- Rétrogradation au palier précédent après 3 échecs consécutifs
+- Rétrogradation lors d'une collision (un joueur qui atteint exactement le score d'un autre) avec support des réactions en chaîne
+- Vérification des scores d'ouverture (500 pts minimum), des paliers valides (multiples de 100) et de la victoire exacte (10 000 pts sans dépassement)
+- Historique complet et annulation pas-à-pas (Undo)
+- Persistance locale continue (`localStorage`)
 
 ## Stack
 
-- Node.js (ES modules)
-- Vitest for unit tests
-- Biome for formatting/linting
+- **React 19**
+- **Vite 7**
+- **Vitest** pour les tests unitaires et d'intégration (jsdom + v8 coverage)
+- **Biome** pour le linting et le formatage
 
-## Project structure
-
-- `src/rules/DiceScorer.js`: computes score for a dice set.
-- `src/rules/TurnRules.js`: turn-level constraints (open threshold, stop condition, exact win, overshoot).
-- `src/game/PlayerState.js`: player score/checkpoint/failure streak state.
-- `src/game/GameState.js`: multiplayer game state and turn flow.
-- `src/game/GameEngine.js`: action dispatcher/orchestration layer over `GameState`.
-
-Tests are colocated next to implementation files as `*.spec.js`.
-
-## Implemented rules
-
-### Scoring
-
-- Single `1` = 100
-- Single `5` = 50
-- Three of a kind:
-  - `1,1,1` = 1000
-  - `N,N,N` = `N * 100` for other values
-- Four of a kind = three-of-a-kind score × 2
-- Five of a kind = four-of-a-kind score × 2
-- Straight `1..5` or `2..6` = 1500
-
-### Turn / game constraints
-
-- Opening requires at least 500 points.
-- A player can stop only on a multiple of 100.
-- Overshoot over target score (default 10,000) counts as a failed turn.
-- 3 consecutive failed turns drop player to previous checkpoint.
-- Score collision drops the collided player to previous checkpoint; chain reactions are supported.
-- Steal/reprise is supported via carried score + remaining dice from last validated turn.
-- If previous player stopped with 0 remaining dice, next player restarts with full dice.
-
-## State orchestration
-
-`GameEngine.dispatch(action)` supports:
-
-- `start_turn`
-- `roll` (`rolledDice`, `keptDice`)
-- `stop_turn`
-- `force_failure`
-- `snapshot`
-
-## Serialization API
-
-`GameState` exposes:
-
-- `getSnapshot()` -> JSON-serializable state
-- `GameState.fromSnapshot(snapshot)` -> restore game from snapshot
-
-Save file format (snapshot + metadata) is defined in `docs/save-format.md`.
-
-## CLI quickstart
-
-Run interactive mode:
-
-- `npm run cli -- interactive`
-
-Useful commands inside the prompt:
-
-- `new --players=Alice,Bob`
-- `status`
-- `roll --dice=5,5,5,2,2`
-- `keep --dice=5,5,5`
-- `stop`
-- `save --file=./save.json`
-- `load --file=./save.json`
-- `quit`
-
-Example flow:
+## Structure du projet
 
 ```text
-centmille> new --players=Alice,Bob
-centmille> roll --dice=5,5,5,2,2
-centmille> keep --dice=5,5,5
-centmille> stop
-centmille> save --file=./save.json
-centmille> quit
+├── index.html                  # Point d'entrée HTML
+├── src/
+│   ├── main.jsx                # Point d'entrée React
+│   ├── App.jsx                 # Composant racine et orchestration de l'interface
+│   ├── game/                   # Moteur de règles métier pur (indépendant de React)
+│   │   ├── Game.js             # Gestion d'une partie (tours, échecs, historique, undo)
+│   │   ├── PlayerState.js      # État d'un joueur (paliers, score, échecs consécutifs)
+│   │   ├── collisionChain.js   # Résolution des collisions et réactions en chaîne
+│   │   └── TurnRules.js        # Règles de validation des scores de tour
+│   ├── components/             # Composants d'interface (écran de saisie, feuille manuscrite...)
+│   ├── hooks/                  # Hooks React (useGame pour lier l'état à la vue)
+│   ├── storage/                # Persistance localStorage
+│   └── styles/
+│       └── sheet.css           # Styles feuille de score manuscrite mobile
 ```
 
-## Web mobile (manual mode)
+## Commandes
 
-A mobile-first web UI is available under `src/web` to track scores while keeping physical dice.
+```bash
+# Démarrer le serveur de développement
+npm run dev
 
-Key actions:
-- Enter turn score only (the app updates cumulative score)
-- `Échec` for failed turn
-- `Annuler` for undo
-- `Recommencer` to reset current game
+# Compiler pour la production
+npm run build
 
-Persistence:
-- Current manual game is saved in `localStorage` under `centmille:current-game`.
+# Prévisualiser le build de production
+npm run preview
 
-Run web app:
-- `npm run dev:web`
-- `npm run build:web`
-- `npm run preview:web`
-- `npm run preview:web:watch` (watch build + preview)
+# Lancer les tests unitaires
+npm run test
 
-## Commands
+# Lancer les tests avec rapport de couverture
+npm run test:coverage
 
-- `npm test`
-- `npm run test:coverage`
-- `npm run check`
-- `npm run format`
-- `npm run lint`
-- `npm run cli -- help`
+# Vérifier le code (linting & formatting Biome)
+npm run check
+npm run lint
+npm run format
+```
