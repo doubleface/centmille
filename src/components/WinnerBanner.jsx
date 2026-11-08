@@ -1,3 +1,5 @@
+import React from 'react'
+
 export const WinnerBanner = ({ winner }) => {
   if (!winner) return null
 

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Centmille — Labo des sons</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&display=swap"
+    />
+    <style>
+      body {
+        margin: 0;
+        padding: 1rem;
+        background: #fbf6e9;
+        color: #1f3a8a;
+        font-family: 'Kalam', cursive;
+      }
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      h2 {
+        border-bottom: 2px solid #c9d4e8;
+        margin-top: 2rem;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+      }
+      .sound {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.4rem 0.8rem;
+        align-items: center;
+        padding: 0.6rem 0;
+        border-bottom: 1px dashed #c9d4e8;
+      }
+      .info {
+        display: flex;
+        flex-direction: column;
+      }
+      .info small {
+        color: #4a4032;
+      }
+      .verdicts,
+      .comment {
+        grid-column: 1 / -1;
+      }
+      button {
+        font: inherit;
+        border: 2px solid #1f3a8a;
+        border-radius: 0.6rem;
+        background: white;
+        color: inherit;
+        padding: 0.2rem 0.6rem;
+        cursor: pointer;
+      }
+      .play {
+        width: 3rem;
+        height: 3rem;
+        font-size: 1.3rem;
+        border-radius: 50%;
+      }
+      .verdict {
+        margin-right: 0.3rem;
+      }
+      .verdict.selected {
+        background: rgba(255, 226, 102, 0.8);
+      }
+      .comment,
+      .export {
+        width: 100%;
+        box-sizing: border-box;
+        font: inherit;
+        padding: 0.3rem;
+      }
+      .export-button {
+        margin: 1rem 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="lab"></main>
+    <script type="module">
+      import { mountSoundLab } from '/src/sound/soundLab.js'
+      mountSoundLab(document.getElementById('lab'))
+    </script>
+  </body>
+</html>

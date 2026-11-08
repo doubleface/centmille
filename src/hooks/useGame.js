@@ -32,20 +32,40 @@ export const useGame = () => {
     return nextGame.getSnapshot()
   }
 
-  const recordTurn = (turnScore) => {
+  const recordTurn = (turnScore, turnOptions = {}) => {
     if (!game) throw new Error('No active game')
 
-    const actionEvents = game.recordTurn(turnScore)
+    const actionEvents = game.recordTurn(turnScore, turnOptions)
     saveCurrentGame(game.getSnapshot())
     setRevision((value) => value + 1)
 
     return actionEvents
   }
 
-  const recordBust = () => {
+  const recordBust = (bustOptions = {}) => {
     if (!game) throw new Error('No active game')
 
-    const actionEvents = game.recordBust()
+    const actionEvents = game.recordBust(bustOptions)
+    saveCurrentGame(game.getSnapshot())
+    setRevision((value) => value + 1)
+
+    return actionEvents
+  }
+
+  const playCard = (cardId, payload = {}) => {
+    if (!game) throw new Error('No active game')
+
+    const actionEvents = game.playCard(cardId, payload)
+    saveCurrentGame(game.getSnapshot())
+    setRevision((value) => value + 1)
+
+    return actionEvents
+  }
+
+  const resolvePendingInteraction = (choice = {}) => {
+    if (!game) throw new Error('No active game')
+
+    const actionEvents = game.resolvePendingInteraction(choice)
     saveCurrentGame(game.getSnapshot())
     setRevision((value) => value + 1)
 
@@ -78,5 +98,7 @@ export const useGame = () => {
     recordBust,
     undoLastEvent,
     resetGame,
+    playCard,
+    resolvePendingInteraction,
   }
 }

@@ -1,6 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react'
 
-export const CornerMenu = ({ onUndo, onResetGame, canUndo = true }) => {
+export const CornerMenu = ({
+  onUndo,
+  onResetGame,
+  canUndo = true,
+  isCentMille = false,
+  onOpenGrimoire = null,
+  isMuted = false,
+  onToggleMute = null,
+}) => {
   const [isOpen, setIsOpen] = useState(false)
   const [isConfirmingReset, setIsConfirmingReset] = useState(false)
   const containerRef = useRef(null)
@@ -75,6 +83,36 @@ export const CornerMenu = ({ onUndo, onResetGame, canUndo = true }) => {
                 <span className="corner-menu__icon">↺</span>
                 Annuler le dernier tour
               </button>
+
+              {isCentMille && onOpenGrimoire ? (
+                <button
+                  type="button"
+                  data-testid="menu-open-grimoire"
+                  className="corner-menu__item"
+                  role="menuitem"
+                  onClick={() => {
+                    onOpenGrimoire()
+                    closeMenu()
+                  }}
+                >
+                  <span className="corner-menu__icon">📖</span>
+                  Grimoire
+                </button>
+              ) : null}
+
+              {onToggleMute ? (
+                <button
+                  type="button"
+                  data-testid="menu-toggle-mute"
+                  className="corner-menu__item"
+                  role="menuitem"
+                  onClick={onToggleMute}
+                >
+                  <span className="corner-menu__icon">{isMuted ? '🔇' : '🔊'}</span>
+                  {isMuted ? 'Activer le son' : 'Couper le son'}
+                </button>
+              ) : null}
+
               <div className="corner-menu__sep" />
               <button
                 type="button"

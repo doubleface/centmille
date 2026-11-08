@@ -4,6 +4,7 @@ import { ScoreRow } from './ScoreRow.jsx'
 export const PlayerColumn = ({
   name,
   rows,
+  badges = [],
   isCurrentPlayer = false,
   isCollisionTarget = false,
   shouldAutoScroll = false,
@@ -34,7 +35,18 @@ export const PlayerColumn = ({
           />
         ))}
       </div>
-      <h2 className="player-column__header">{name}</h2>
+      <h2 className="player-column__header">
+        <span>{name}</span>
+        {badges.length > 0 ? (
+          <span className="player-column__badges" data-testid={`badges-${name}`}>
+            {badges.map((badge) => (
+              <span key={badge.id} className="player-column__badge" title={badge.title}>
+                {badge.icon}
+              </span>
+            ))}
+          </span>
+        ) : null}
+      </h2>
     </article>
   )
 }

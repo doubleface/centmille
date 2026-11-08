@@ -1,8 +1,31 @@
 import React, { useMemo, useState } from 'react'
 import { GameScreen } from './components/GameScreen.jsx'
+import { GrimoireModal } from './components/GrimoireModal.jsx'
+import { RevealModal } from './components/RevealModal.jsx'
 import { SetupScreen } from './components/SetupScreen.jsx'
 import { WinnerBanner } from './components/WinnerBanner.jsx'
 import { useGame } from './hooks/useGame.js'
+import soundPlayer, { playSound } from './sound/soundPlayer.js'
+
+export const REVEALABLE_EVENT_TYPES = [
+  'card-drawn',
+  'card-played',
+  'boomerang',
+  'magic-number',
+  'table-event',
+  'achievement',
+  'consolation',
+  'bounty-claimed',
+  'crown-changed',
+  'red-zone',
+  'bomb-exploded',
+  'pandora-curse',
+]
+
+export const buildRevealQueue = (actionEvents) => {
+  if (!Array.isArray(actionEvents)) return []
+  return actionEvents.filter((event) => REVEALABLE_EVENT_TYPES.includes(event.type))
+}
 
 export const buildRowsByPlayer = (snapshot) => {
   if (!snapshot) return {}
@@ -13,7 +36,12 @@ export const buildRowsByPlayer = (snapshot) => {
     const rows = rowsByPlayer[event.player] ?? []
 
     if (event.type === 'score') {
-      rows.push({ label: String(event.cumulative), variant: 'normal', isDowngraded: false, bustCount: 0 })
+      rows.push({
+        label: String(event.cumulative),
+        variant: 'normal',
+        isDowngraded: false,
+        bustCount: 0,
+      })
     }
 
     if (event.type === 'bust') {
@@ -35,7 +63,49 @@ export const buildRowsByPlayer = (snapshot) => {
       }
     }
 
+    if (event.type === 'shield-used') {
+      if (rows.length > 0) {
+        rows[rows.length - 1] = {
+          ...rows[rows.length - 1],
+          isDowngraded: false,
+        }
+      }
+    }
+
+    if (event.type === 'parachute-used') {
+      rows.push({
+        label: String(event.score),
+        variant: 'normal',
+        isDowngraded: false,
+        bustCount: 0,
+      })
+    }
+
     rowsByPlayer[event.player] = rows
+  }
+
+  if (Array.isArray(snapshot.players)) {
+    for (const player of snapshot.players) {
+      if (typeof player.score === 'number' && player.score > 0) {
+        const rows = rowsByPlayer[player.name] ?? []
+        const lastActive = rows.findLast((r) => !r.isDowngraded && r.label !== '—')
+
+        if (!lastActive || Number(lastActive.label) !== player.score) {
+          for (let i = 0; i < rows.length; i++) {
+            if (!rows[i].isDowngraded && rows[i].label !== '—') {
+              rows[i] = { ...rows[i], isDowngraded: true }
+            }
+          }
+          rows.push({
+            label: String(player.score),
+            variant: 'normal',
+            isDowngraded: false,
+            bustCount: 0,
+          })
+          rowsByPlayer[player.name] = rows
+        }
+      }
+    }
   }
 
   return rowsByPlayer
@@ -83,7 +153,20 @@ export const App = () => {
   const [errorMessage, setErrorMessage] = useState(null)
   const [collisionReviewQueue, setCollisionReviewQueue] = useState([])
   const [collisionReviewIndex, setCollisionReviewIndex] = useState(0)
-  const { snapshot, startGame, recordTurn, recordBust, undoLastEvent, resetGame } = useGame()
+  const [revealQueue, setRevealQueue] = useState([])
+  const [isGrimoireOpen, setIsGrimoireOpen] = useState(false)
+  const [isMuted, setIsMuted] = useState(() => soundPlayer.isMuted())
+
+  const {
+    snapshot,
+    startGame,
+    recordTurn,
+    recordBust,
+    undoLastEvent,
+    resetGame,
+    playCard,
+    resolvePendingInteraction,
+  } = useGame()
 
   const players = snapshot ? snapshot.players.map((player) => player.name) : []
   const hasGame = players.length >= 2
@@ -92,41 +175,88 @@ export const App = () => {
   const currentPlayer = snapshot ? snapshot.players[snapshot.currentPlayerIndex] : null
   const winner = snapshot?.winnerIndex === null ? null : snapshot?.players[snapshot.winnerIndex]?.name
 
-  const handleStart = (playerNames) => {
-    try {
-      startGame(playerNames)
-      setErrorMessage(null)
-    } catch (error) {
-      setErrorMessage(error.message)
-    }
-  }
+  const processActionEvents = (actionEvents, { queueCollisions = true } = {}) => {
+    if (!Array.isArray(actionEvents)) return
 
-  const handleRecordTurn = (turnScore) => {
-    try {
-      const actionEvents = recordTurn(turnScore)
-      const queue = buildCollisionReviewQueue(actionEvents)
-      if (queue.length > 0) {
-        playDowngradeSound()
-      }
-      setCollisionReviewQueue(queue)
+    const collisionQueue = buildCollisionReviewQueue(actionEvents)
+    if (collisionQueue.length > 0) {
+      playDowngradeSound()
+    }
+    if (queueCollisions) {
+      setCollisionReviewQueue(collisionQueue)
       setCollisionReviewIndex(0)
+    }
+
+    const revealEvents = buildRevealQueue(actionEvents)
+    if (revealEvents.length > 0) {
+      const firstEvent = revealEvents[0]
+      if (firstEvent.soundId) {
+        playSound(firstEvent.soundId, {
+          withCardFlip:
+            firstEvent.type === 'card-drawn' || firstEvent.type === 'card-played',
+        })
+      }
+      setRevealQueue((queue) => [...queue, ...revealEvents])
+    }
+  }
+
+  const handleStart = (playerNames, options) => {
+    if (options !== undefined) {
+      startGame(playerNames, options)
+    } else {
+      startGame(playerNames)
+    }
+    setErrorMessage(null)
+  }
+
+  const handleRecordTurn = (turnScore, turnOptions) => {
+    try {
+      const actionEvents =
+        turnOptions !== undefined ? recordTurn(turnScore, turnOptions) : recordTurn(turnScore)
+      processActionEvents(actionEvents)
       setErrorMessage(null)
     } catch (error) {
       setErrorMessage(error.message)
     }
   }
 
-  const handleRecordBust = () => {
+  const handleRecordBust = (bustOptions) => {
     try {
       if (collisionReviewQueue.length > 0) return
-      const actionEvents = recordBust()
-      if (buildCollisionReviewQueue(actionEvents).length > 0) {
-        playDowngradeSound()
-      }
+      const actionEvents =
+        bustOptions !== undefined ? recordBust(bustOptions) : recordBust()
+      processActionEvents(actionEvents, { queueCollisions: false })
       setErrorMessage(null)
     } catch (error) {
       setErrorMessage(error.message)
     }
+  }
+
+  const handlePlayCard = (cardId, payload) => {
+    try {
+      if (typeof playCard !== 'function') return
+      const actionEvents = playCard(cardId, payload)
+      processActionEvents(actionEvents)
+      setErrorMessage(null)
+    } catch (error) {
+      setErrorMessage(error.message)
+    }
+  }
+
+  const handleResolveInteraction = (choice) => {
+    try {
+      if (typeof resolvePendingInteraction !== 'function') return
+      const actionEvents = resolvePendingInteraction(choice)
+      processActionEvents(actionEvents)
+      setErrorMessage(null)
+    } catch (error) {
+      setErrorMessage(error.message)
+    }
+  }
+
+  const handleToggleMute = () => {
+    const nextMuted = soundPlayer.toggleMuted()
+    setIsMuted(nextMuted)
   }
 
   const handleUndo = () => {
@@ -144,6 +274,8 @@ export const App = () => {
       resetGame()
       setCollisionReviewQueue([])
       setCollisionReviewIndex(0)
+      setRevealQueue([])
+      setIsGrimoireOpen(false)
       setErrorMessage(null)
     } catch (error) {
       setErrorMessage(error.message)
@@ -189,8 +321,37 @@ export const App = () => {
           errorMessage={errorMessage}
           collisionReview={activeCollisionReview}
           onNextCollision={handleNextCollision}
+          mode={snapshot?.mode ?? 'quick-10k'}
+          playerStates={snapshot?.players ?? []}
+          currentPlayerIndex={snapshot?.currentPlayerIndex ?? 0}
+          activeTableEvent={snapshot?.activeTableEvent ?? null}
+          crownHolderIndex={snapshot?.crownHolderIndex ?? null}
+          bombState={snapshot?.bombState ?? null}
+          redZoneEnabled={Boolean(snapshot?.redZoneEnabled)}
+          redZoneThreshold={snapshot?.redZoneThreshold ?? 90000}
+          activeTurnModifiers={snapshot?.activeTurnModifiers ?? {}}
+          lastTurnWasBust={Boolean(snapshot?.lastTurnWasBust)}
+          lastPlayedCardId={snapshot?.lastPlayedCardId ?? null}
+          onPlayCard={handlePlayCard}
+          onOpenGrimoire={() => setIsGrimoireOpen(true)}
+          isMuted={isMuted}
+          onToggleMute={handleToggleMute}
         />
       )}
+      <RevealModal
+        revealEvent={revealQueue[0] ?? null}
+        pendingInteraction={
+          revealQueue.length === 0 ? (snapshot?.pendingInteraction ?? null) : null
+        }
+        players={snapshot?.players ?? []}
+        onDismissReveal={() => setRevealQueue((q) => q.slice(1))}
+        onResolveInteraction={handleResolveInteraction}
+      />
+      <GrimoireModal
+        isOpen={isGrimoireOpen}
+        discoveredIds={snapshot?.discoveredIds ?? []}
+        onClose={() => setIsGrimoireOpen(false)}
+      />
       <WinnerBanner winner={winner} />
     </main>
   )
