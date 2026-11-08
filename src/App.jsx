@@ -1,11 +1,21 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { GameScreen } from './components/GameScreen.jsx'
 import { GrimoireModal } from './components/GrimoireModal.jsx'
 import { RevealModal } from './components/RevealModal.jsx'
 import { SetupScreen } from './components/SetupScreen.jsx'
 import { WinnerBanner } from './components/WinnerBanner.jsx'
+import { CARDS } from './game/cardsCatalog.js'
 import { useGame } from './hooks/useGame.js'
 import soundPlayer, { playSound } from './sound/soundPlayer.js'
+
+export const preloadCardImages = () => {
+  for (const card of CARDS) {
+    if (card.image && typeof window !== 'undefined' && typeof window.Image === 'function') {
+      const img = new window.Image()
+      img.src = card.image
+    }
+  }
+}
 
 export const REVEALABLE_EVENT_TYPES = [
   'card-drawn',
@@ -156,6 +166,10 @@ export const App = () => {
   const [revealQueue, setRevealQueue] = useState([])
   const [isGrimoireOpen, setIsGrimoireOpen] = useState(false)
   const [isMuted, setIsMuted] = useState(() => soundPlayer.isMuted())
+
+  useEffect(() => {
+    preloadCardImages()
+  }, [])
 
   const {
     snapshot,
