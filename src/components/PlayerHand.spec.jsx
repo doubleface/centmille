@@ -345,4 +345,88 @@ describe('PlayerHand', () => {
     render(<PlayerHand player={player} />)
     expect(screen.queryByTestId('hand-card-unknown-card-id-0')).toBeNull()
   })
+
+  it('displays pickpocket descriptions with 500 points in dix-mille-bonus mode', () => {
+    const player = {
+      name: 'Alice',
+      hand: ['pickpocket'],
+    }
+    render(
+      <PlayerHand
+        player={player}
+        mode="dix-mille-bonus"
+        players={dummyPlayers}
+        currentPlayerIndex={0}
+      />
+    )
+
+    // Short description on tile
+    expect(
+      screen.getByText('Pendant votre tour : vole 500 pts au leader actuel.')
+    ).toBeTruthy()
+
+    // Open action panel for full description
+    fireEvent.click(screen.getByTestId('hand-card-pickpocket-0'))
+    expect(
+      screen.getByText(/vole 500 points au joueur actuellement en tête \(si ce leader a au moins 500 points/)
+    ).toBeTruthy()
+  })
+
+  it('checks pickpocket eligibility according to mode pickpocketAmount', () => {
+    const onPlayCard = vi.fn()
+    const player = {
+      name: 'Alice',
+      hand: ['pickpocket'],
+    }
+
+    // Opponent has 600 points: eligible in dix-mille-bonus (amount 500), but not in cent-mille (amount 1000)
+    const playersWith600 = [
+      { name: 'Alice', score: 0 },
+      { name: 'Bob', score: 600 },
+    ]
+
+    const { rerender } = render(
+      <PlayerHand
+        player={player}
+        players={playersWith600}
+        currentPlayerIndex={0}
+        mode="cent-mille"
+        onPlayCard={onPlayCard}
+      />
+    )
+
+    fireEvent.click(screen.getByTestId('hand-card-pickpocket-0'))
+    expect(screen.getByTestId('play-card-button').disabled).toBe(true)
+
+    // Switch to dix-mille-bonus: 600 >= 500 so play button should be enabled
+    rerender(
+      <PlayerHand
+        player={player}
+        players={playersWith600}
+        currentPlayerIndex={0}
+        mode="dix-mille-bonus"
+        onPlayCard={onPlayCard}
+      />
+    )
+
+    expect(screen.getByTestId('play-card-button').disabled).toBe(false)
+    fireEvent.click(screen.getByTestId('play-card-button'))
+    expect(onPlayCard).toHaveBeenCalledWith('pickpocket', {})
+
+    // When opponent has 400 in dix-mille-bonus (< 500), disabled
+    rerender(
+      <PlayerHand
+        player={player}
+        players={[
+          { name: 'Alice', score: 0 },
+          { name: 'Bob', score: 400 },
+        ]}
+        currentPlayerIndex={0}
+        mode="dix-mille-bonus"
+        onPlayCard={onPlayCard}
+      />
+    )
+    fireEvent.click(screen.getByTestId('hand-card-pickpocket-0'))
+    expect(screen.getByTestId('play-card-button').disabled).toBe(true)
+  })
 })

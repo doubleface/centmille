@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import React from 'react'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { GameScreen } from './GameScreen.jsx'
 
@@ -128,5 +128,67 @@ describe('GameScreen', () => {
     expect(screen.getByText(/Rétrogradation:/)).toBeTruthy()
     expect(screen.getByText(/2000 → 1000/)).toBeTruthy()
     expect(screen.getByText('Terminer')).toBeTruthy()
+  })
+
+  it('renders table event banner, player hand, badges and grimoire menu in dix-mille-bonus mode', () => {
+    const onOpenGrimoire = vi.fn()
+    const activeTableEvent = {
+      name: 'Happy Hour',
+      description: 'Les 5 valent 100 pts',
+      remainingTurns: 2,
+    }
+    const playerStates = [
+      {
+        name: 'Alice',
+        score: 9200,
+        hand: ['bouclier'],
+        status: { frozen: true },
+      },
+      {
+        name: 'Bob',
+        score: 5000,
+        hand: ['gel'],
+        status: {},
+      },
+    ]
+
+    render(
+      <GameScreen
+        mode="dix-mille-bonus"
+        players={['Alice', 'Bob']}
+        playerStates={playerStates}
+        currentPlayer={playerStates[0]}
+        activeTableEvent={activeTableEvent}
+        redZoneEnabled={true}
+        redZoneThreshold={9000}
+        onRecordTurn={vi.fn()}
+        onRecordBust={vi.fn()}
+        onUndo={vi.fn()}
+        onResetGame={vi.fn()}
+        onOpenGrimoire={onOpenGrimoire}
+      />
+    )
+
+    // Table event banner is rendered
+    const banner = screen.getByTestId('table-event-banner')
+    expect(banner).toBeTruthy()
+    expect(banner.textContent).toContain('Happy Hour — Les 5 valent 100 pts')
+
+    // Player hand is rendered
+    expect(screen.getByTestId('player-hand')).toBeTruthy()
+
+    // Badges in dix-mille-bonus
+    const aliceBadges = screen.getByTestId('badges-Alice')
+    expect(aliceBadges.textContent).toContain('🧊')
+    expect(aliceBadges.textContent).toContain('🚨')
+    expect(aliceBadges.textContent).toContain('🃏×1')
+
+    // Corner menu should have Grimoire
+    const menuBtn = screen.getByLabelText('Menu de la partie')
+    fireEvent.click(menuBtn)
+    const grimoireItem = screen.getByTestId('menu-open-grimoire')
+    expect(grimoireItem).toBeTruthy()
+    fireEvent.click(grimoireItem)
+    expect(onOpenGrimoire).toHaveBeenCalledTimes(1)
   })
 })

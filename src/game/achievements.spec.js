@@ -142,5 +142,27 @@ describe('achievements', () => {
         'bourreau',
       ])
     })
+
+    it('restricts unlocked achievements when allowedIds is specified', () => {
+      const result = evaluateAchievements({
+        turnScore: 3000,
+        collisionsCount: 2,
+        isFirstBloodOfGame: true,
+        recoveredFromDrop: true,
+        wasUniqueLastBeforeTurn: true,
+        isUniqueFirstAfterTurn: true,
+        failedTurnsBeforeTurn: 2,
+        allowedIds: ['premier-sang', 'miracule', 'coup-declat'],
+      })
+      expect(result.map((a) => a.id)).toEqual(['coup-declat', 'premier-sang', 'miracule'])
+    })
+
+    it('returns empty array when allowedIds does not match any triggered achievements', () => {
+      const result = evaluateAchievements({
+        turnScore: 3000,
+        allowedIds: ['premier-sang'],
+      })
+      expect(result).toEqual([])
+    })
   })
 })

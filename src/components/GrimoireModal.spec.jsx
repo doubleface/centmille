@@ -104,4 +104,39 @@ describe('GrimoireModal', () => {
     expect(fallback).toBeTruthy()
     expect(fallback.textContent).toBe('🛡️')
   })
+
+  it('filters cards, magic numbers, table events, and achievements in dix-mille-bonus mode', () => {
+    const discoveredIds = ['card:pickpocket', 'magic:exact-tier']
+
+    render(
+      <GrimoireModal
+        isOpen={true}
+        discoveredIds={discoveredIds}
+        mode="dix-mille-bonus"
+        onClose={vi.fn()}
+      />
+    )
+
+    // Dix Mille Bonus has:
+    // 17 deck cards + architecte = 18 cards
+    expect(screen.getByText(/🃏 Cartes \(1\/18\)/)).toBeTruthy()
+    // 3 magic numbers (5000, 6600, 7700)
+    expect(screen.getByText(/🔮 Nombres magiques \(1\/3\)/)).toBeTruthy()
+    // 6 table events
+    expect(screen.getByText(/🌍 Événements de table \(0\/6\)/)).toBeTruthy()
+    // 3 achievements
+    expect(screen.getByText(/🏆 Succès \(0\/3\)/)).toBeTruthy()
+
+    // Architecte card must be present because dix-mille-bonus has a tier
+    expect(screen.getByTestId('grimoire-card-architecte')).toBeTruthy()
+
+    // Cards not in deck should not be present
+    expect(screen.queryByTestId('grimoire-card-aspirateur')).toBeNull()
+    expect(screen.queryByTestId('grimoire-card-teleporteur')).toBeNull()
+
+    // Discovered pickpocket shows 500 in description instead of 1 000
+    expect(screen.getByText('🕵️ Le Pickpocket')).toBeTruthy()
+    expect(screen.getByText(/vole 500 points au joueur actuellement en tête/i)).toBeTruthy()
+    expect(screen.queryByText(/vole 1 000 points/i)).toBeNull()
+  })
 })

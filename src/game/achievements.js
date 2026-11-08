@@ -57,12 +57,14 @@ export const evaluateAchievements = ({
   failedTurnsBeforeTurn = 0,
   alreadyUnlockedIds = [],
   coupDeclatAlreadyAwarded = false,
+  allowedIds = null,
 } = {}) => {
   const unlocked = []
   const already = new Set(alreadyUnlockedIds)
+  const allowedSet = allowedIds ? new Set(allowedIds) : null
 
   const check = (id, condition) => {
-    if (condition && !already.has(id)) {
+    if (condition && !already.has(id) && (!allowedSet || allowedSet.has(id))) {
       unlocked.push(findAchievement(id))
     }
   }

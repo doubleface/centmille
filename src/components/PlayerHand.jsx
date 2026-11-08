@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { findCard } from '../game/cardsCatalog.js'
+import { findCard, getCardDescriptions } from '../game/cardsCatalog.js'
+import { resolveGameMode } from '../game/GameMode.js'
 
 function CardThumbnail({ image, alt, emoji }) {
   const [hasError, setHasError] = useState(false)
@@ -33,11 +34,16 @@ export function PlayerHand({
   activeTurnModifiers = {},
   onPlayCard,
   disabled = false,
+  mode = 'cent-mille',
+  modeConfig = null,
 }) {
   const [selectedIndex, setSelectedIndex] = useState(null)
   const [targetIndex, setTargetIndex] = useState(null)
   const [refuseGage, setRefuseGage] = useState(false)
   const [contratScore, setContratScore] = useState('500')
+
+  const config = modeConfig ?? resolveGameMode({ mode })
+  const pickpocketAmount = config?.pickpocketAmount ?? 1000
 
   const hand = player?.hand ?? []
 
@@ -114,6 +120,14 @@ export function PlayerHand({
     if (selectedCard.id === 'echo' && !lastPlayedCardId) {
       return true
     }
+    if (selectedCard.id === 'pickpocket') {
+      const hasEligibleOpponent = targetCandidates.some(
+        (c) => (c.player?.score ?? 0) >= pickpocketAmount
+      )
+      if (!hasEligibleOpponent) {
+        return true
+      }
+    }
     if (
       selectedCard.activation === 'instant-target' &&
       effectiveTargetIndex === null
@@ -180,6 +194,7 @@ export function PlayerHand({
             const card = findCard(cardId)
             if (!card) return null
             const isSelected = selectedIndex === index
+            const { shortDescription } = getCardDescriptions(card, config)
 
             return (
               <button
@@ -200,7 +215,7 @@ export function PlayerHand({
                 </div>
                 <div className="card-tile__body">
                   <div className="card-tile__name">{card.name}</div>
-                  <div className="card-tile__desc">{card.shortDescription}</div>
+                  <div className="card-tile__desc">{shortDescription}</div>
                 </div>
               </button>
             )
@@ -229,7 +244,7 @@ export function PlayerHand({
           </div>
 
           <p className="card-action-panel__description">
-            {selectedCard.fullDescription}
+            {getCardDescriptions(selectedCard, config).fullDescription}
           </p>
 
           {selectedCard.activation === 'passive-prompt' && (

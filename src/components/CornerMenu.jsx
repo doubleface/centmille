@@ -4,6 +4,7 @@ export const CornerMenu = ({
   onUndo,
   onResetGame,
   canUndo = true,
+  hasGrimoire = false,
   isCentMille = false,
   onOpenGrimoire = null,
   isMuted = false,
@@ -84,7 +85,7 @@ export const CornerMenu = ({
                 Annuler le dernier tour
               </button>
 
-              {isCentMille && onOpenGrimoire ? (
+              {(hasGrimoire || isCentMille) && onOpenGrimoire ? (
                 <button
                   type="button"
                   data-testid="menu-open-grimoire"

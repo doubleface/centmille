@@ -67,7 +67,13 @@ export const TABLE_EVENTS = Object.freeze([
 
 export const findTableEvent = (id) => TABLE_EVENTS.find((event) => event.id === id) ?? null
 
-export const drawTableEvent = (rng = Math.random) => {
-  const index = Math.floor(rng() * TABLE_EVENTS.length)
-  return TABLE_EVENTS[Math.min(index, TABLE_EVENTS.length - 1)]
+export const drawTableEvent = (rng = Math.random, allowedIds = null) => {
+  const pool = allowedIds
+    ? TABLE_EVENTS.filter((event) => allowedIds.includes(event.id))
+    : TABLE_EVENTS
+
+  if (pool.length === 0) return null
+
+  const index = Math.floor(rng() * pool.length)
+  return pool[Math.min(index, pool.length - 1)]
 }

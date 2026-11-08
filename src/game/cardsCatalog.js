@@ -567,42 +567,84 @@ export const CARDS = Object.freeze([
 
 export const findCard = (id) => CARDS.find((card) => card.id === id) ?? null
 
-export const pickRarity = (rng = Math.random) => {
+export const getCardDescriptions = (card, modeConfig) => {
+  if (!card) {
+    return { shortDescription: '', fullDescription: '' }
+  }
+
+  if (
+    card.id === 'pickpocket' &&
+    typeof modeConfig?.pickpocketAmount === 'number' &&
+    modeConfig.pickpocketAmount !== 1000
+  ) {
+    const formattedAmount = modeConfig.pickpocketAmount.toLocaleString('fr-FR')
+    return {
+      shortDescription: card.shortDescription.replace(/1[\s\u00a0\u202f]000/g, formattedAmount),
+      fullDescription: card.fullDescription.replace(/1[\s\u00a0\u202f]000/g, formattedAmount),
+    }
+  }
+
+  return {
+    shortDescription: card.shortDescription,
+    fullDescription: card.fullDescription,
+  }
+}
+
+export const pickRarity = (rng = Math.random, weights = RARITY_WEIGHTS) => {
   const r = rng()
-  if (r < RARITY_WEIGHTS.common) return 'common'
-  if (r < RARITY_WEIGHTS.common + RARITY_WEIGHTS.rare) return 'rare'
+  if (r < weights.common) return 'common'
+  if (r < weights.common + weights.rare) return 'rare'
   return 'legendary'
 }
 
-export const drawCardByRarity = (rarity, rng = Math.random, excludeIds = []) => {
-  let pool = CARDS.filter((c) => c.inDeck && c.rarity === rarity && !excludeIds.includes(c.id))
+export const drawCardByRarity = (rarity, rng = Math.random, excludeIds = [], allowedIds = null) => {
+  const allowedSet = allowedIds ? new Set(allowedIds) : null
+  const excludeSet = new Set(excludeIds)
+  const isAllowed = (c) => (allowedSet ? allowedSet.has(c.id) : true)
+  const matchesRarity = (c) => (rarity ? c.rarity === rarity : true)
+
+  let pool = CARDS.filter(
+    (c) => c.inDeck && matchesRarity(c) && isAllowed(c) && !excludeSet.has(c.id)
+  )
   if (pool.length === 0) {
-    pool = CARDS.filter((c) => c.inDeck && c.rarity === rarity)
+    pool = CARDS.filter((c) => c.inDeck && matchesRarity(c) && isAllowed(c))
   }
   if (pool.length === 0) return null
   const idx = Math.floor(rng() * pool.length)
   return pool[Math.min(idx, pool.length - 1)]
 }
 
-export const drawRandomCard = (rng = Math.random, excludeIds = []) => {
-  const rarity = pickRarity(rng)
-  return drawCardByRarity(rarity, rng, excludeIds)
+export const drawRandomCard = (
+  rng = Math.random,
+  excludeIds = [],
+  { weights = RARITY_WEIGHTS, allowedIds = null } = {}
+) => {
+  const rarity = pickRarity(rng, weights)
+  return (
+    drawCardByRarity(rarity, rng, excludeIds, allowedIds) ??
+    drawCardByRarity(null, rng, excludeIds, allowedIds)
+  )
 }
 
-export const drawDistinctCards = (count, rng = Math.random) => {
-  const deck = CARDS.filter((card) => card.inDeck)
+export const drawDistinctCards = (
+  count,
+  rng = Math.random,
+  { weights = RARITY_WEIGHTS, allowedIds = null } = {}
+) => {
+  const allowedSet = allowedIds ? new Set(allowedIds) : null
+  const deck = CARDS.filter((card) => card.inDeck && (allowedSet ? allowedSet.has(card.id) : true))
   const maxCount = Math.min(count, deck.length)
   const chosen = []
 
   while (chosen.length < maxCount) {
     const excluded = chosen.map((c) => c.id)
-    const card = drawRandomCard(rng, excluded)
-    if (chosen.some((c) => c.id === card.id)) {
+    const card = drawRandomCard(rng, excluded, { weights, allowedIds })
+    if (card && !chosen.some((c) => c.id === card.id)) {
+      chosen.push(card)
+    } else {
       const remaining = deck.filter((c) => !chosen.some((x) => x.id === c.id))
       const idx = Math.floor(rng() * remaining.length)
       chosen.push(remaining[Math.min(idx, remaining.length - 1)])
-    } else {
-      chosen.push(card)
     }
   }
 

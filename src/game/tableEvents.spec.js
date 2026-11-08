@@ -50,5 +50,18 @@ describe('tableEvents', () => {
       expect(event).not.toBeNull()
       expect(TABLE_EVENTS.some((e) => e.id === event.id)).toBe(true)
     })
+
+    it('filters events when allowedIds is specified', () => {
+      const allowed = ['fete-des-2', 'treve']
+      const event1 = drawTableEvent(() => 0, allowed)
+      const event2 = drawTableEvent(() => 0.999, allowed)
+      expect(event1?.id).toBe('fete-des-2')
+      expect(event2?.id).toBe('treve')
+    })
+
+    it('returns null when allowedIds pool is empty', () => {
+      expect(drawTableEvent(() => 0, [])).toBeNull()
+      expect(drawTableEvent(() => 0, ['unknown-event'])).toBeNull()
+    })
   })
 })

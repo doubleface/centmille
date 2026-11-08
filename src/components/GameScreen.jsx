@@ -1,4 +1,5 @@
 import React from 'react'
+import { isBonusMode } from '../game/GameMode.js'
 import { CornerMenu } from './CornerMenu.jsx'
 import { PlayerColumn } from './PlayerColumn.jsx'
 import { PlayerHand } from './PlayerHand.jsx'
@@ -35,7 +36,7 @@ export const GameScreen = ({
     <section className="sheet-screen">
       <h1 className="sheet-screen__title">Partie en cours</h1>
 
-      {mode === 'cent-mille' && activeTableEvent ? (
+      {isBonusMode(mode) && activeTableEvent ? (
         <div className="table-event-banner" data-testid="table-event-banner">
           {activeTableEvent.name} — {activeTableEvent.description} ({activeTableEvent.remainingTurns} tour(s) restants)
         </div>
@@ -48,7 +49,7 @@ export const GameScreen = ({
           const pState = playerStates[idx]
           const badges = []
 
-          if (mode === 'cent-mille') {
+          if (isBonusMode(mode)) {
             if (crownHolderIndex === idx) {
               badges.push({ id: 'crown', icon: '👑', title: 'Porteur de la Couronne' })
             }
@@ -111,7 +112,7 @@ export const GameScreen = ({
         currentPlayerIndex={currentPlayerIndex}
       />
 
-      {mode === 'cent-mille' ? (
+      {isBonusMode(mode) ? (
         <PlayerHand
           player={currentPlayer}
           players={playerStates}
@@ -123,6 +124,7 @@ export const GameScreen = ({
           activeTurnModifiers={activeTurnModifiers}
           onPlayCard={onPlayCard}
           disabled={Boolean(collisionReview)}
+          mode={mode}
         />
       ) : null}
 
@@ -141,7 +143,7 @@ export const GameScreen = ({
       <CornerMenu
         onUndo={onUndo}
         onResetGame={onResetGame}
-        isCentMille={mode === 'cent-mille'}
+        hasGrimoire={isBonusMode(mode)}
         onOpenGrimoire={onOpenGrimoire}
         isMuted={isMuted}
         onToggleMute={onToggleMute}

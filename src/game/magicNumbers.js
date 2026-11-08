@@ -63,6 +63,28 @@ export const MAGIC_NUMBERS = Object.freeze([
   },
 ])
 
-export const checkMagicNumber = (score) => {
+export const MAGIC_SCORES_BY_MODE = Object.freeze({
+  'dix-mille-bonus': Object.freeze({
+    5000: 'exact-tier',
+    6600: 'devil',
+    7700: 'jackpot',
+  }),
+})
+
+export const checkMagicNumber = (score, modeId = 'cent-mille') => {
+  const modeMap = MAGIC_SCORES_BY_MODE[modeId]
+  if (modeMap) {
+    const magicId = modeMap[score]
+    return MAGIC_NUMBERS.find((magic) => magic.id === magicId) ?? null
+  }
   return MAGIC_NUMBERS.find((magic) => magic.matches(score)) ?? null
+}
+
+export const getMagicNumbersForMode = (modeId) => {
+  const modeMap = MAGIC_SCORES_BY_MODE[modeId]
+  if (modeMap) {
+    const ids = new Set(Object.values(modeMap))
+    return MAGIC_NUMBERS.filter((magic) => ids.has(magic.id))
+  }
+  return [...MAGIC_NUMBERS]
 }

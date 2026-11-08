@@ -52,14 +52,14 @@ describe('CornerMenu', () => {
     expect(screen.getByText('Recommencer la partie')).toBeTruthy()
   })
 
-  it('renders Grimoire option in cent-mille mode and opens it', () => {
+  it('renders Grimoire option when hasGrimoire is true and opens it', () => {
     const onOpenGrimoire = vi.fn()
 
     render(
       <CornerMenu
         onUndo={vi.fn()}
         onResetGame={vi.fn()}
-        isCentMille={true}
+        hasGrimoire={true}
         onOpenGrimoire={onOpenGrimoire}
       />
     )
@@ -72,6 +72,22 @@ describe('CornerMenu', () => {
     fireEvent.click(grimoireBtn)
     expect(onOpenGrimoire).toHaveBeenCalledTimes(1)
     expect(screen.queryByTestId('menu-open-grimoire')).toBeNull()
+  })
+
+  it('maintains backwards compatibility for isCentMille prop', () => {
+    const onOpenGrimoire = vi.fn()
+
+    render(
+      <CornerMenu
+        onUndo={vi.fn()}
+        onResetGame={vi.fn()}
+        isCentMille={true}
+        onOpenGrimoire={onOpenGrimoire}
+      />
+    )
+
+    fireEvent.click(screen.getByLabelText('Menu de la partie'))
+    expect(screen.getByTestId('menu-open-grimoire')).toBeTruthy()
   })
 
   it('renders sound mute toggle option and calls onToggleMute', () => {

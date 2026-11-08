@@ -20,8 +20,10 @@ export class Game {
       throw new Error('Player names must be non-empty strings')
     }
 
-    this.targetScore = options.targetScore ?? (options.mode === 'cent-mille' ? 100000 : 10000)
-    this.openingScore = options.openingScore ?? 500
+    this.modeConfig = resolveGameMode(options)
+    this.mode = this.modeConfig.id
+    this.targetScore = this.modeConfig.targetScore
+    this.openingScore = this.modeConfig.openingScore
 
     if (!Number.isInteger(this.targetScore) || this.targetScore <= 0) {
       throw new Error('targetScore must be a positive integer')
@@ -31,13 +33,7 @@ export class Game {
       throw new Error('openingScore must be a non-negative integer')
     }
 
-    this.modeConfig = resolveGameMode({
-      ...options,
-      targetScore: this.targetScore,
-      openingScore: this.openingScore,
-    })
-    this.mode = this.modeConfig.id
-    this.rng = options.rng ?? Math.random
+    this.rng = options?.rng ?? Math.random
 
     this.players = playerNames.map((name) => new PlayerState(name))
     this.currentPlayerIndex = 0
@@ -61,6 +57,7 @@ export class Game {
     this.coupDeclatAwarded = false
     this.lastPlayedCardId = null
     this.lastTurnWasBust = false
+    this.welcomeCardGivenTo = []
 
     this.activeTurnModifiers = this.createDefaultTurnModifiers()
     this.activeBets = []
@@ -95,6 +92,24 @@ export class Game {
     return false
   }
 
+  drawModeCardByRarity(rarity, excludeIds = []) {
+    return drawCardByRarity(rarity, this.rng, excludeIds, this.modeConfig.deckCardIds)
+  }
+
+  drawModeRandomCard(excludeIds = []) {
+    return drawRandomCard(this.rng, excludeIds, {
+      weights: this.modeConfig.rarityWeights,
+      allowedIds: this.modeConfig.deckCardIds,
+    })
+  }
+
+  drawModeDistinctCards(count) {
+    return drawDistinctCards(count, this.rng, {
+      weights: this.modeConfig.rarityWeights,
+      allowedIds: this.modeConfig.deckCardIds,
+    })
+  }
+
   giveCardToPlayer(playerIndex, cardId, actionEvents = this.events, reason = 'draw') {
     const card = findCard(cardId)
     if (!card) return
@@ -103,7 +118,8 @@ export class Game {
     if (!player) return
 
     const firstDiscovery = this.markDiscovered(`card:${cardId}`)
-    if (player.hand.length < 3) {
+    const handLimit = this.modeConfig.handLimit ?? 3
+    if (player.hand.length < handLimit) {
       player.hand.push(cardId)
       actionEvents.push({
         type: 'card-drawn',
@@ -201,11 +217,12 @@ export class Game {
     }
 
     if (cardId === 'pickpocket') {
+      const amount = this.modeConfig.pickpocketAmount ?? 1000
       const hasValidOpponentLeader = this.players.some(
-        (p, idx) => idx !== this.currentPlayerIndex && p.score >= 1000
+        (p, idx) => idx !== this.currentPlayerIndex && p.score >= amount
       )
       if (!hasValidOpponentLeader) {
-        throw new Error('No opponent with at least 1000 points')
+        throw new Error(`No opponent with at least ${amount} points`)
       }
     }
 
@@ -336,23 +353,24 @@ export class Game {
         }
         break
       case 'pickpocket': {
+        const amount = this.modeConfig.pickpocketAmount ?? 1000
         let leaderIndex = -1
         let maxScore = -1
         for (const [idx, p] of this.players.entries()) {
-          if (idx !== this.currentPlayerIndex && p.score >= 1000 && p.score > maxScore) {
+          if (idx !== this.currentPlayerIndex && p.score >= amount && p.score > maxScore) {
             maxScore = p.score
             leaderIndex = idx
           }
         }
         if (leaderIndex !== -1) {
           const leader = this.players[leaderIndex]
-          leader.adjustScore(-1000)
-          player.adjustScore(1000)
+          leader.adjustScore(-amount)
+          player.adjustScore(amount)
           actionEvents.push({
             type: 'pickpocket',
             thief: player.name,
             victim: leader.name,
-            amount: 1000,
+            amount,
           })
         }
         break
@@ -421,7 +439,7 @@ export class Game {
         break
       case 'pandore':
         if (this.rng() < 0.5) {
-          const legCard = drawCardByRarity('legendary', this.rng)
+          const legCard = this.drawModeCardByRarity('legendary')
           if (legCard) {
             this.giveCardToPlayer(this.currentPlayerIndex, legCard.id, actionEvents, 'pandora')
           }
@@ -513,12 +531,15 @@ export class Game {
     this.activeDuels = remainingDuels
   }
 
-  handleConsolation(playerIndex, actionEvents) {
+  handleConsolation(playerIndex, actionEvents, source = 'drop') {
     if (!this.modeConfig.jokersEnabled) return
+    if (this.modeConfig.consolationCollisionOnly && source !== 'collision') return
+
     const player = this.players[playerIndex]
-    if (player.unrewardedDrops >= 2 || this.rng() < 1 / 3) {
+    const prob = this.modeConfig.consolationProbability ?? 1 / 3
+    if (player.unrewardedDrops >= 2 || this.rng() < prob) {
       player.unrewardedDrops = 0
-      const card = drawCardByRarity('common', this.rng)
+      const card = this.drawModeCardByRarity('common')
       if (card) {
         this.giveCardToPlayer(playerIndex, card.id, actionEvents, 'consolation')
         actionEvents.push({
@@ -549,7 +570,8 @@ export class Game {
         to,
         reason,
       })
-      this.handleConsolation(playerIndex, actionEvents)
+      const source = attackerIndex !== null && attackerIndex !== undefined ? 'collision' : 'drop'
+      this.handleConsolation(playerIndex, actionEvents, source)
 
       const availableCards = player.hand.filter((id) =>
         attackerIndex !== null && attackerIndex !== undefined
@@ -607,7 +629,7 @@ export class Game {
             }
           }
           if (recipientPlayerIndex !== -1) {
-            const cards = drawDistinctCards(3, this.rng)
+            const cards = this.drawModeDistinctCards(3)
             this.pendingInteractions.push({
               type: 'architect',
               tier,
@@ -632,7 +654,7 @@ export class Game {
 
   triggerRandomTableEvent(actionEvents = this.events) {
     if (!this.modeConfig.tableEventsEnabled) return
-    const event = drawTableEvent(this.rng)
+    const event = drawTableEvent(this.rng, this.modeConfig.allowedTableEventIds)
     if (!event) return
 
     this.activeTableEvent = {
@@ -658,7 +680,7 @@ export class Game {
       this.turnDirection *= -1
     } else if (event.id === 'pluie-de-cartes') {
       for (let i = 0; i < this.players.length; i++) {
-        const card = drawCardByRarity('common', this.rng)
+        const card = this.drawModeCardByRarity('common')
         if (card) {
           this.giveCardToPlayer(i, card.id, actionEvents, 'table-event')
         }
@@ -865,8 +887,20 @@ export class Game {
 
     this.checkTiersCrossed(currentPlayerIndex, actionEvents)
 
+    if (
+      typeof this.modeConfig.welcomeCardThreshold === 'number' &&
+      player.score >= this.modeConfig.welcomeCardThreshold &&
+      !this.welcomeCardGivenTo.includes(currentPlayerIndex)
+    ) {
+      this.welcomeCardGivenTo.push(currentPlayerIndex)
+      const card = this.drawModeCardByRarity('common')
+      if (card) {
+        this.giveCardToPlayer(currentPlayerIndex, card.id, actionEvents, 'welcome')
+      }
+    }
+
     if (this.modeConfig.magicNumbersEnabled) {
-      const magic = checkMagicNumber(player.score)
+      const magic = checkMagicNumber(player.score, this.mode)
       const isClaimedExactTier =
         magic?.id === 'exact-tier' && player.exactTiersClaimed.includes(player.score)
       if (magic && !isClaimedExactTier) {
@@ -884,7 +918,7 @@ export class Game {
         })
         switch (magic.id) {
           case 'lucky-repdigit': {
-            const card = drawRandomCard(this.rng)
+            const card = this.drawModeRandomCard()
             if (card) {
               this.giveCardToPlayer(currentPlayerIndex, card.id, actionEvents, 'magic-number')
             }
@@ -902,7 +936,7 @@ export class Game {
             this.handlePlayerDrop(currentPlayerIndex, null, 1, actionEvents, 'devil')
             break
           case 'answer-42': {
-            const choices = drawDistinctCards(2, this.rng)
+            const choices = this.drawModeDistinctCards(2)
             this.pendingInteractions.push({
               type: 'answer-42',
               playerIndex: currentPlayerIndex,
@@ -914,7 +948,7 @@ export class Game {
             player.status.cursed = true
             break
           case 'jackpot': {
-            const card = drawCardByRarity('legendary', this.rng)
+            const card = this.drawModeCardByRarity('legendary')
             if (card) {
               this.giveCardToPlayer(currentPlayerIndex, card.id, actionEvents, 'magic-number')
             }
@@ -958,12 +992,13 @@ export class Game {
       }
 
       if (
+        this.modeConfig.crownEnabled &&
         this.crownHolderIndex === collision.victimIndex &&
         this.crownBountyAvailable &&
         collision.attackerIndex !== collision.victimIndex
       ) {
         this.crownBountyAvailable = false
-        const rareCard = drawCardByRarity('rare', this.rng)
+        const rareCard = this.drawModeCardByRarity('rare')
         if (rareCard) {
           this.giveCardToPlayer(collision.attackerIndex, rareCard.id, actionEvents, 'crown-bounty')
         }
@@ -975,7 +1010,7 @@ export class Game {
         })
       }
 
-      this.handleConsolation(collision.victimIndex, actionEvents)
+      this.handleConsolation(collision.victimIndex, actionEvents, 'collision')
 
       const victim = this.players[collision.victimIndex]
       const availableCards = victim.hand.filter((id) =>
@@ -1004,12 +1039,16 @@ export class Game {
         type: 'red-zone',
         player: player.name,
         soundId: 'red-zone',
+        threshold: this.modeConfig.redZoneThreshold,
+        sabotage: Boolean(this.modeConfig.redZoneSabotageEnabled),
       })
-      const sabotageCards = ['malediction', 'gel', 'bombe']
-      for (const [idx] of this.players.entries()) {
-        if (idx !== currentPlayerIndex) {
-          const cardId = sabotageCards[idx % sabotageCards.length]
-          this.giveCardToPlayer(idx, cardId, actionEvents, 'red-zone-sabotage')
+      if (this.modeConfig.redZoneSabotageEnabled) {
+        const sabotageCards = ['malediction', 'gel', 'bombe']
+        for (const [idx] of this.players.entries()) {
+          if (idx !== currentPlayerIndex) {
+            const cardId = sabotageCards[idx % sabotageCards.length]
+            this.giveCardToPlayer(idx, cardId, actionEvents, 'red-zone-sabotage')
+          }
         }
       }
     }
@@ -1026,6 +1065,7 @@ export class Game {
         failedTurnsBeforeTurn,
         alreadyUnlockedIds: player.achievements,
         coupDeclatAlreadyAwarded: this.coupDeclatAwarded,
+        allowedIds: this.modeConfig.allowedAchievementIds,
       })
 
       if (isFirstBloodOfGame) {
@@ -1046,7 +1086,7 @@ export class Game {
           soundId: 'achievement',
           firstDiscovery,
         })
-        const bonusCard = drawCardByRarity('common', this.rng)
+        const bonusCard = this.drawModeCardByRarity('common')
         if (bonusCard) {
           this.giveCardToPlayer(currentPlayerIndex, bonusCard.id, actionEvents, 'achievement')
         }
@@ -1119,7 +1159,7 @@ export class Game {
       })
 
       if (this.modeConfig.jokersEnabled) {
-        this.handleConsolation(currentPlayerIndex, actionEvents)
+        this.handleConsolation(currentPlayerIndex, actionEvents, 'drop')
         const availableCards = player.hand.filter((id) => ['bouclier', 'parachute'].includes(id))
         if (availableCards.length > 0) {
           this.pendingInteractions.push({
@@ -1150,6 +1190,8 @@ export class Game {
   }
 
   updateCrownAtEndOfRound() {
+    if (!this.modeConfig.crownEnabled) return
+
     let highestScore = 0
     let leaderIndex = null
     let countWithMax = 0
@@ -1209,7 +1251,9 @@ export class Game {
     if (this.turnsPlayedInRound >= this.players.length) {
       this.turnsPlayedInRound = 0
       this.tableRoundCount += 1
-      this.updateCrownAtEndOfRound()
+      if (this.modeConfig.crownEnabled) {
+        this.updateCrownAtEndOfRound()
+      }
 
       if (this.bombState) {
         this.bombState.remainingTableRounds -= 1
@@ -1227,7 +1271,7 @@ export class Game {
             to,
             soundId: 'bomb',
           })
-          this.handleConsolation(holderIndex, this.events)
+          this.handleConsolation(holderIndex, this.events, 'drop')
           const availableCards = holder.hand.filter((id) => ['bouclier', 'parachute'].includes(id))
           if (availableCards.length > 0) {
             this.pendingInteractions.push({
@@ -1246,6 +1290,7 @@ export class Game {
 
       if (
         this.modeConfig.tableEventsEnabled &&
+        this.modeConfig.periodicTableEventsEnabled &&
         this.tableRoundCount > 0 &&
         this.tableRoundCount % 10 === 0 &&
         !this.activeTableEvent
@@ -1286,7 +1331,9 @@ export class Game {
       if (this.turnsPlayedInRound >= this.players.length) {
         this.turnsPlayedInRound = 0
         this.tableRoundCount += 1
-        this.updateCrownAtEndOfRound()
+        if (this.modeConfig.crownEnabled) {
+          this.updateCrownAtEndOfRound()
+        }
       }
     }
   }
@@ -1447,7 +1494,7 @@ export class Game {
                   from: attackerFrom,
                   to: attackerTo,
                 })
-                this.handleConsolation(interaction.attackerIndex, actionEvents)
+                this.handleConsolation(interaction.attackerIndex, actionEvents, 'collision')
                 const attackerDefensive = attacker.hand.filter((id) =>
                   ['bouclier', 'parachute'].includes(id)
                 )
@@ -1479,7 +1526,7 @@ export class Game {
           const costMap = { common: 1000, rare: 2000, legendary: 4000 }
           const cost = costMap[choice.rarity]
           player.adjustScore(-cost)
-          const card = drawCardByRarity(choice.rarity, this.rng)
+          const card = this.drawModeCardByRarity(choice.rarity)
           if (card) {
             this.giveCardToPlayer(interaction.playerIndex, card.id, actionEvents, 'shop')
           }
@@ -1550,6 +1597,7 @@ export class Game {
     this.bombState = restored.bombState
     this.pendingInteractions = restored.pendingInteractions
     this.discoveredIds = restored.discoveredIds
+    this.welcomeCardGivenTo = restored.welcomeCardGivenTo
 
     return this.getSnapshot()
   }
@@ -1562,7 +1610,9 @@ export class Game {
       openingScore: this.openingScore,
       mode: this.mode,
       redZoneEnabled: this.modeConfig.redZoneEnabled,
+      redZoneThreshold: this.modeConfig.redZoneThreshold,
       shopEnabled: this.modeConfig.shopEnabled,
+      handLimit: this.modeConfig.handLimit,
       currentPlayerIndex: this.currentPlayerIndex,
       players: this.players.map((player) => player.toSnapshot()),
       winnerIndex,
@@ -1578,6 +1628,7 @@ export class Game {
       coupDeclatAwarded: this.coupDeclatAwarded,
       lastPlayedCardId: this.lastPlayedCardId,
       lastTurnWasBust: this.lastTurnWasBust,
+      welcomeCardGivenTo: [...this.welcomeCardGivenTo],
       activeTurnModifiers: {
         ...this.activeTurnModifiers,
         declarativeCards: [...this.activeTurnModifiers.declarativeCards],
@@ -1672,6 +1723,9 @@ export class Game {
         ? [{ ...snapshot.pendingInteraction }]
         : []
     game.discoveredIds = Array.isArray(snapshot.discoveredIds) ? [...snapshot.discoveredIds] : []
+    game.welcomeCardGivenTo = Array.isArray(snapshot.welcomeCardGivenTo)
+      ? [...snapshot.welcomeCardGivenTo]
+      : []
 
     return game
   }

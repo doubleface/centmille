@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { ACHIEVEMENTS } from '../game/achievements.js'
-import { CARDS } from '../game/cardsCatalog.js'
-import { MAGIC_NUMBERS } from '../game/magicNumbers.js'
+import { CARDS, getCardDescriptions } from '../game/cardsCatalog.js'
+import { resolveGameMode } from '../game/GameMode.js'
+import { getMagicNumbersForMode } from '../game/magicNumbers.js'
 import { TABLE_EVENTS } from '../game/tableEvents.js'
 
 function CardThumbnail({ image, alt, emoji }) {
@@ -25,24 +26,48 @@ function CardThumbnail({ image, alt, emoji }) {
   )
 }
 
-export function GrimoireModal({ isOpen = false, discoveredIds = [], onClose }) {
+export function GrimoireModal({
+  isOpen = false,
+  discoveredIds = [],
+  onClose,
+  mode = 'cent-mille',
+  modeConfig = null,
+}) {
   if (!isOpen) return null
+
+  const config = modeConfig ?? resolveGameMode({ mode })
+  const hasTiers = (config.tiers ?? []).length > 0
+
+  const filteredCards = CARDS.filter((card) => {
+    if (!config.deckCardIds) return true
+    return config.deckCardIds.includes(card.id) || (card.id === 'architecte' && hasTiers)
+  })
+
+  const filteredMagic = getMagicNumbersForMode(mode)
+
+  const filteredEvents = config.allowedTableEventIds
+    ? TABLE_EVENTS.filter((event) => config.allowedTableEventIds.includes(event.id))
+    : TABLE_EVENTS
+
+  const filteredAchievements = config.allowedAchievementIds
+    ? ACHIEVEMENTS.filter((ach) => config.allowedAchievementIds.includes(ach.id))
+    : ACHIEVEMENTS
 
   const discoveredSet = new Set(discoveredIds)
 
-  const discoveredCardsCount = CARDS.filter((card) =>
+  const discoveredCardsCount = filteredCards.filter((card) =>
     discoveredSet.has(`card:${card.id}`)
   ).length
 
-  const discoveredMagicCount = MAGIC_NUMBERS.filter((magic) =>
+  const discoveredMagicCount = filteredMagic.filter((magic) =>
     discoveredSet.has(`magic:${magic.id}`)
   ).length
 
-  const discoveredEventsCount = TABLE_EVENTS.filter((event) =>
+  const discoveredEventsCount = filteredEvents.filter((event) =>
     discoveredSet.has(`event:${event.id}`)
   ).length
 
-  const discoveredAchievementsCount = ACHIEVEMENTS.filter((ach) =>
+  const discoveredAchievementsCount = filteredAchievements.filter((ach) =>
     discoveredSet.has(`achievement:${ach.id}`)
   ).length
 
@@ -69,10 +94,10 @@ export function GrimoireModal({ isOpen = false, discoveredIds = [], onClose }) {
             data-testid="grimoire-section-cards"
           >
             <h3 className="grimoire-section__title">
-              🃏 Cartes ({discoveredCardsCount}/{CARDS.length})
+              🃏 Cartes ({discoveredCardsCount}/{filteredCards.length})
             </h3>
             <div className="grimoire-grid">
-              {CARDS.map((card) => {
+              {filteredCards.map((card) => {
                 const isDiscovered = discoveredSet.has(`card:${card.id}`)
 
                 if (!isDiscovered) {
@@ -95,6 +120,8 @@ export function GrimoireModal({ isOpen = false, discoveredIds = [], onClose }) {
                   )
                 }
 
+                const descs = getCardDescriptions(card, config)
+
                 return (
                   <div
                     key={card.id}
@@ -111,7 +138,7 @@ export function GrimoireModal({ isOpen = false, discoveredIds = [], onClose }) {
                     <div className="grimoire-item__body">
                       <div className="grimoire-item__name">{card.name}</div>
                       <div className="grimoire-item__desc">
-                        {card.fullDescription || card.shortDescription}
+                        {descs.fullDescription || descs.shortDescription}
                       </div>
                     </div>
                   </div>
@@ -126,10 +153,10 @@ export function GrimoireModal({ isOpen = false, discoveredIds = [], onClose }) {
             data-testid="grimoire-section-magic"
           >
             <h3 className="grimoire-section__title">
-              🔮 Nombres magiques ({discoveredMagicCount}/{MAGIC_NUMBERS.length})
+              🔮 Nombres magiques ({discoveredMagicCount}/{filteredMagic.length})
             </h3>
             <div className="grimoire-grid">
-              {MAGIC_NUMBERS.map((magic) => {
+              {filteredMagic.map((magic) => {
                 const isDiscovered = discoveredSet.has(`magic:${magic.id}`)
 
                 if (!isDiscovered) {
@@ -180,10 +207,10 @@ export function GrimoireModal({ isOpen = false, discoveredIds = [], onClose }) {
           >
             <h3 className="grimoire-section__title">
               🌍 Événements de table ({discoveredEventsCount}/
-              {TABLE_EVENTS.length})
+              {filteredEvents.length})
             </h3>
             <div className="grimoire-grid">
-              {TABLE_EVENTS.map((event) => {
+              {filteredEvents.map((event) => {
                 const isDiscovered = discoveredSet.has(`event:${event.id}`)
 
                 if (!isDiscovered) {
@@ -233,10 +260,10 @@ export function GrimoireModal({ isOpen = false, discoveredIds = [], onClose }) {
             data-testid="grimoire-section-achievements"
           >
             <h3 className="grimoire-section__title">
-              🏆 Succès ({discoveredAchievementsCount}/{ACHIEVEMENTS.length})
+              🏆 Succès ({discoveredAchievementsCount}/{filteredAchievements.length})
             </h3>
             <div className="grimoire-grid">
-              {ACHIEVEMENTS.map((ach) => {
+              {filteredAchievements.map((ach) => {
                 const isDiscovered = discoveredSet.has(`achievement:${ach.id}`)
 
                 if (!isDiscovered) {

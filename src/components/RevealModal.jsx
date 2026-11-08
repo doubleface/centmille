@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { findAchievement } from '../game/achievements.js'
-import { findCard } from '../game/cardsCatalog.js'
+import { findCard, getCardDescriptions } from '../game/cardsCatalog.js'
+import { resolveGameMode } from '../game/GameMode.js'
 import { MAGIC_NUMBERS } from '../game/magicNumbers.js'
 import { findTableEvent } from '../game/tableEvents.js'
 
@@ -25,36 +26,39 @@ function CardThumbnail({ image, alt, emoji }) {
   )
 }
 
-function resolveRevealContent(event) {
+function resolveRevealContent(event, modeConfig = null) {
   if (!event) return null
   const { type } = event
 
   switch (type) {
     case 'card-drawn': {
       const card = findCard(event.cardId)
+      const descs = getCardDescriptions(card, modeConfig)
       return {
         title: `${event.player} pioche ${card?.name ?? event.cardId}`,
         subtitle: card?.name ?? event.cardId,
         emoji: card?.emoji ?? '🃏',
         image: card?.image ?? null,
         description:
-          card?.fullDescription ?? card?.shortDescription ?? 'Nouvelle carte piochée !',
+          descs.fullDescription || descs.shortDescription || 'Nouvelle carte piochée !',
       }
     }
     case 'card-played': {
       const card = findCard(event.cardId)
+      const descs = getCardDescriptions(card, modeConfig)
       return {
         title: `${event.player} joue ${card?.name ?? event.cardId}`,
         subtitle: card?.name ?? event.cardId,
         emoji: card?.emoji ?? '🃏',
         image: card?.image ?? null,
         description:
-          card?.fullDescription ?? card?.shortDescription ?? 'Carte jouée !',
+          descs.fullDescription || descs.shortDescription || 'Carte jouée !',
       }
     }
     case 'boomerang': {
       const card = findCard('boomerang')
       const targetCard = findCard(event.cardId)
+      const descs = getCardDescriptions(card, modeConfig)
       return {
         title: '🪃 Boomerang !',
         subtitle: `${event.player} renvoie l'effet à ${event.attacker} !`,
@@ -62,7 +66,7 @@ function resolveRevealContent(event) {
         image: card?.image ?? '/cards/boomerang.jpg',
         description: targetCard
           ? `L'effet de « ${targetCard.name} » est renvoyé directement sur son lanceur ${event.attacker} !`
-          : (card?.fullDescription ?? 'Effet renvoyé !'),
+          : (descs.fullDescription || 'Effet renvoyé !'),
       }
     }
     case 'magic-number': {
@@ -102,6 +106,7 @@ function resolveRevealContent(event) {
     }
     case 'consolation': {
       const card = findCard(event.cardId)
+      const descs = getCardDescriptions(card, modeConfig)
       return {
         title: `🩹 Consolation pour ${event.player}`,
         subtitle: card?.name ?? 'Carte de consolation',
@@ -109,7 +114,7 @@ function resolveRevealContent(event) {
         image: card?.image ?? null,
         description: `Après cette chute difficile, ${event.player} reçoit une carte de consolation : ${
           card?.name ?? ''
-        }. ${card?.fullDescription ?? ''}`,
+        }. ${descs.fullDescription || ''}`,
       }
     }
     case 'bounty-claimed': {
@@ -131,12 +136,18 @@ function resolveRevealContent(event) {
       }
     }
     case 'red-zone': {
+      const threshold = event.threshold ?? modeConfig?.redZoneThreshold ?? 90000
+      const formattedThreshold = Number(threshold).toLocaleString('fr-FR')
+      const sabotageSentence =
+        event.sabotage !== false
+          ? ' Les cartes offensives lui sont interdites, et les adversaires préparent leur sabotage !'
+          : ' Les cartes offensives lui sont interdites !'
       return {
         title: '🚨 Zone Rouge !',
-        subtitle: `${event.player} dépasse 90 000 pts !`,
+        subtitle: `${event.player} dépasse ${formattedThreshold} pts !`,
         emoji: '🚨',
         image: null,
-        description: `Attention ! ${event.player} a franchi les 90 000 points et entre dans la Zone Rouge ! Les cartes offensives lui sont interdites, et les adversaires préparent leur sabotage !`,
+        description: `Attention ! ${event.player} a franchi les ${formattedThreshold} points et entre dans la Zone Rouge !${sabotageSentence}`,
       }
     }
     case 'bomb-exploded': {
@@ -177,14 +188,18 @@ export function RevealModal({
   players = [],
   onDismissReveal,
   onResolveInteraction,
+  mode = 'cent-mille',
+  modeConfig = null,
 }) {
   if (!revealEvent && !pendingInteraction) {
     return null
   }
 
+  const config = modeConfig ?? resolveGameMode({ mode })
+
   // Priority 1: revealEvent
   if (revealEvent) {
-    const content = resolveRevealContent(revealEvent)
+    const content = resolveRevealContent(revealEvent, config)
     return (
       <div className="modal-overlay" data-testid="reveal-modal">
         <div className="reveal-card">
@@ -265,6 +280,7 @@ export function RevealModal({
               {pendingInteraction.choices.map((cardId) => {
                 const card = findCard(cardId)
                 if (!card) return null
+                const descs = getCardDescriptions(card, config)
                 return (
                   <button
                     type="button"
@@ -283,7 +299,7 @@ export function RevealModal({
                     <div className="card-tile__body">
                       <div className="card-tile__name">{card.name}</div>
                       <div className="card-tile__desc">
-                        {card.shortDescription}
+                        {descs.shortDescription}
                       </div>
                     </div>
                   </button>
@@ -308,6 +324,7 @@ export function RevealModal({
               {pendingInteraction.choices.map((cardId) => {
                 const card = findCard(cardId)
                 if (!card) return null
+                const descs = getCardDescriptions(card, config)
                 return (
                   <button
                     type="button"
@@ -326,7 +343,7 @@ export function RevealModal({
                     <div className="card-tile__body">
                       <div className="card-tile__name">{card.name}</div>
                       <div className="card-tile__desc">
-                        {card.shortDescription}
+                        {descs.shortDescription}
                       </div>
                     </div>
                   </button>
@@ -339,18 +356,20 @@ export function RevealModal({
     }
 
     case 'hand-overflow': {
+      const handLimit = config?.handLimit ?? 3
       return (
         <div className="modal-overlay" data-testid="reveal-modal">
           <div className="reveal-card">
             <h2 className="reveal-card__title">✋ Main pleine</h2>
             <p className="reveal-card__description">
-              Main pleine (max 3 cartes) : choisissez quelle carte défausser
+              Main pleine (max {handLimit} cartes) : choisissez quelle carte défausser
             </p>
 
             <div className="reveal-card__choices">
               {pendingInteraction.choices.map((cardId) => {
                 const card = findCard(cardId)
                 if (!card) return null
+                const descs = getCardDescriptions(card, config)
                 return (
                   <button
                     type="button"
@@ -371,7 +390,7 @@ export function RevealModal({
                     <div className="card-tile__body">
                       <div className="card-tile__name">{card.name}</div>
                       <div className="card-tile__desc">
-                        {card.shortDescription}
+                        {descs.shortDescription}
                       </div>
                     </div>
                   </button>

@@ -1596,4 +1596,509 @@ describe('Game', () => {
       expect(restored.pendingInteractions).toHaveLength(1)
     })
   })
+
+  describe('Dix Mille Bonus mode', () => {
+    it('initializes with Dix Mille Bonus mode defaults', () => {
+      const game = new Game(['Alice', 'Bob'], { mode: 'dix-mille-bonus' })
+      expect(game.targetScore).toBe(10000)
+      expect(game.openingScore).toBe(500)
+      expect(game.modeConfig.handLimit).toBe(2)
+      expect(game.modeConfig.tiers).toEqual([5000])
+      expect(game.modeConfig.shopEnabled).toBe(false)
+      expect(game.modeConfig.crownEnabled).toBe(false)
+      expect(game.modeConfig.redZoneEnabled).toBe(true)
+      expect(game.modeConfig.redZoneThreshold).toBe(9000)
+      expect(game.modeConfig.redZoneSabotageEnabled).toBe(false)
+      expect(game.modeConfig.periodicTableEventsEnabled).toBe(false)
+      expect(game.modeConfig.consolationProbability).toBe(0.5)
+      expect(game.modeConfig.consolationCollisionOnly).toBe(true)
+      expect(game.modeConfig.pickpocketAmount).toBe(500)
+      expect(game.modeConfig.welcomeCardThreshold).toBe(1000)
+      expect(game.welcomeCardGivenTo).toEqual([])
+
+      const snapshot = game.getSnapshot()
+      expect(snapshot.mode).toBe('dix-mille-bonus')
+      expect(snapshot.redZoneThreshold).toBe(9000)
+      expect(snapshot.handLimit).toBe(2)
+      expect(snapshot.welcomeCardGivenTo).toEqual([])
+    })
+
+    it('enforces hand limit of 2 and triggers overflow on 3rd card', () => {
+      const game = new Game(['Alice', 'Bob'], { mode: 'dix-mille-bonus' })
+      const alice = game.players[0]
+
+      game.giveCardToPlayer(0, 'bouclier')
+      game.giveCardToPlayer(0, 'doubleur')
+      expect(alice.hand).toEqual(['bouclier', 'doubleur'])
+      expect(game.pendingInteractions).toHaveLength(0)
+
+      game.giveCardToPlayer(0, 'gel')
+      expect(game.pendingInteractions).toHaveLength(1)
+      expect(game.pendingInteractions[0]).toEqual(
+        expect.objectContaining({
+          type: 'hand-overflow',
+          playerIndex: 0,
+          choices: ['bouclier', 'doubleur', 'gel'],
+        })
+      )
+
+      game.resolveHandOverflow('doubleur')
+      expect(alice.hand).toEqual(['bouclier', 'gel'])
+      expect(game.pendingInteractions).toHaveLength(0)
+    })
+
+    it('draws cards restricted to the 17 allowed mode cards', () => {
+      const game = new Game(['Alice', 'Bob'], { mode: 'dix-mille-bonus' })
+      for (let i = 0; i < 30; i++) {
+        const randomCard = game.drawModeRandomCard()
+        expect(game.modeConfig.deckCardIds).toContain(randomCard.id)
+      }
+      const distinct = game.drawModeDistinctCards(3)
+      expect(distinct).toHaveLength(3)
+      for (const c of distinct) {
+        expect(game.modeConfig.deckCardIds).toContain(c.id)
+      }
+    })
+
+    it('awards welcome card once when reaching >= 1000 points, survives tiers, and never duplicates', () => {
+      const game = new Game(['Alice', 'Bob'], { mode: 'dix-mille-bonus' })
+      const alice = game.players[0]
+
+      // Turn 1: Alice scores 600 (opens). No welcome card yet.
+      game.recordTurn(600)
+      expect(alice.score).toBe(600)
+      expect(alice.hand).toHaveLength(0)
+      expect(game.welcomeCardGivenTo).toEqual([])
+
+      // Bob's turn: Bob scores 500 (opens, no collision with Alice at 600)
+      game.recordTurn(500)
+      expect(game.players[1].score).toBe(500)
+
+      // Turn 2: Alice scores 500 -> total 1100. Welcome card threshold (>= 1000) reached!
+      const events = game.recordTurn(500)
+      expect(alice.score).toBe(1100)
+      expect(alice.hand).toHaveLength(1)
+      expect(game.welcomeCardGivenTo).toEqual([0])
+      expect(events).toContainEqual(
+        expect.objectContaining({
+          type: 'card-drawn',
+          player: 'Alice',
+          reason: 'welcome',
+        })
+      )
+
+      // Bob collides with Alice: Bob scores 600 -> total 1100! Alice drops from 1100 to 600!
+      // Bob reached 1100 (>= 1000), Bob receives welcome card + achievement card for premier-sang
+      game.recordTurn(600)
+      expect(game.players[1].score).toBe(1100)
+      expect(game.players[1].hand).toHaveLength(2)
+      expect(game.welcomeCardGivenTo).toEqual([0, 1])
+      expect(alice.score).toBe(600)
+
+      // Alice now at 600. Next turn Alice scores 500 -> total 1100.
+      // Alice already received welcome card, so no duplicate welcome card!
+      const aliceHandCountBefore = alice.hand.length
+      game.recordTurn(500)
+      expect(alice.score).toBe(1100)
+      expect(alice.hand.length).toBe(aliceHandCountBefore)
+      expect(game.welcomeCardGivenTo).toEqual([0, 1])
+    })
+
+    it('handles tier 5000 crossing: expires cards, triggers architect and table event, no shop', () => {
+      let rngStep = 0
+      const stubRng = () => {
+        rngStep += 0.1
+        return (rngStep * 0.3) % 1
+      }
+      const game = new Game(['Alice', 'Bob'], { mode: 'dix-mille-bonus', rng: stubRng })
+      const alice = game.players[0]
+      const bob = game.players[1]
+
+      alice.hasOpened = true
+      alice.score = 4500
+      alice.checkpointHistory = [0, 4500]
+      alice.hand = ['arrondi', 'reset']
+
+      bob.hasOpened = true
+      bob.score = 1000
+      bob.checkpointHistory = [0, 1000]
+
+      const events = game.recordTurn(500)
+      expect(alice.score).toBe(5000)
+      // Alice cards expired
+      expect(events).toContainEqual(
+        expect.objectContaining({
+          type: 'cards-expired',
+          player: 'Alice',
+          cards: ['arrondi', 'reset'],
+        })
+      )
+      // Exact tier magic number at 5000 gives bouclier!
+      expect(events).toContainEqual(
+        expect.objectContaining({
+          type: 'magic-number',
+          magicId: 'exact-tier',
+        })
+      )
+      // Welcome card at >= 1000 given after tier crossing
+      expect(events).toContainEqual(
+        expect.objectContaining({
+          type: 'card-drawn',
+          reason: 'welcome',
+        })
+      )
+      // Architect interaction for tier 5000 giving choices to Bob (lowest score)
+      expect(game.pendingInteractions).toContainEqual(
+        expect.objectContaining({
+          type: 'architect',
+          tier: 5000,
+          architectPlayerIndex: 0,
+          recipientPlayerIndex: 1,
+        })
+      )
+      // No shop interaction
+      expect(game.pendingInteractions.some((pi) => pi.type === 'shop')).toBe(false)
+      // Table event was triggered
+      expect(events.some((e) => e.type === 'table-event')).toBe(true)
+      const tableEvent = events.find((e) => e.type === 'table-event')
+      expect(game.modeConfig.allowedTableEventIds).toContain(tableEvent.eventId)
+    })
+
+    it('triggers only 5000 (exact-tier), 6600 (devil), 7700 (jackpot) magic numbers in dix-mille-bonus', () => {
+      const game = new Game(['Alice', 'Bob'], { mode: 'dix-mille-bonus' })
+      const alice = game.players[0]
+
+      // 6600: devil drops 1 checkpoint without awarding consolation
+      alice.hasOpened = true
+      alice.score = 5000
+      alice.checkpointHistory = [0, 5000]
+      alice.previousCheckpointScore = 0
+      alice.highestTierReached = 5000
+      game.welcomeCardGivenTo = [0] // already got welcome card
+
+      const eventsDevil = game.recordTurn(1600)
+      expect(eventsDevil).toContainEqual(
+        expect.objectContaining({ type: 'magic-number', magicId: 'devil' })
+      )
+      expect(alice.score).toBe(5000)
+      // Consolation is collision-only in dix-mille-bonus, so devil drop does not give consolation
+      expect(eventsDevil.some((e) => e.type === 'consolation')).toBe(false)
+      expect(alice.unrewardedDrops).toBe(0)
+
+      // 7700: jackpot gives a legendary card from the 17-card deck
+      game.currentPlayerIndex = 0
+      alice.score = 7000
+      alice.checkpointHistory = [0, 5000, 7000]
+      const eventsJackpot = game.recordTurn(700)
+      expect(eventsJackpot).toContainEqual(
+        expect.objectContaining({ type: 'magic-number', magicId: 'jackpot' })
+      )
+      const legCard = alice.hand.at(-1)
+      expect(['cameleon', 'miroir', 'bis']).toContain(legCard)
+
+      // Unlisted magic score in dix-mille-bonus
+      game.currentPlayerIndex = 0
+      alice.score = 4000
+      alice.checkpointHistory = [0, 4000]
+      const eventsNoMagic = game.recordTurn(200)
+      expect(eventsNoMagic.some((e) => e.type === 'magic-number')).toBe(false)
+    })
+
+    it('handles consolation strictly on collisions and miroir reflection, not on bust drop', () => {
+      // 1. Bust drop in dix-mille-bonus
+      const gameBust = new Game(['Alice', 'Bob'], { mode: 'dix-mille-bonus' })
+      const aliceBust = gameBust.players[0]
+      aliceBust.hasOpened = true
+      aliceBust.score = 2000
+      aliceBust.checkpointHistory = [0, 1000, 2000]
+      aliceBust.failedTurnsInRow = 2
+
+      const bustEvents = gameBust.recordBust()
+      expect(bustEvents).toContainEqual(
+        expect.objectContaining({ type: 'downgrade', player: 'Alice', from: 2000, to: 1000 })
+      )
+      expect(bustEvents.some((e) => e.type === 'consolation')).toBe(false)
+      expect(aliceBust.unrewardedDrops).toBe(0)
+
+      // 2. Collision drop in dix-mille-bonus with rng stub (p = 0.5)
+      // When rng returns 0.2 (< 0.5), consolation awarded
+      let rngVal = 0.2
+      const gameCol = new Game(['Alice', 'Bob'], {
+        mode: 'dix-mille-bonus',
+        rng: () => rngVal,
+      })
+      const aliceCol = gameCol.players[0]
+      const bobCol = gameCol.players[1]
+      aliceCol.hasOpened = true
+      aliceCol.score = 1500
+      aliceCol.checkpointHistory = [0, 1000, 1500]
+
+      bobCol.hasOpened = true
+      bobCol.score = 500
+      bobCol.checkpointHistory = [0, 500]
+      gameCol.welcomeCardGivenTo = [0, 1]
+
+      // Bob scores 1000 -> collisions with Alice at 1500!
+      gameCol.currentPlayerIndex = 1
+      const colEvents = gameCol.recordTurn(1000)
+      expect(colEvents).toContainEqual(
+        expect.objectContaining({ type: 'downgrade', player: 'Alice', from: 1500, to: 1000 })
+      )
+      expect(colEvents).toContainEqual(
+        expect.objectContaining({ type: 'consolation', player: 'Alice' })
+      )
+      expect(aliceCol.unrewardedDrops).toBe(0)
+
+      // When rng returns 0.8 (>= 0.5), consolation NOT awarded, unrewardedDrops increments
+      rngVal = 0.8
+      const gameCol2 = new Game(['Alice', 'Bob'], {
+        mode: 'dix-mille-bonus',
+        rng: () => rngVal,
+      })
+      const alice2 = gameCol2.players[0]
+      const bob2 = gameCol2.players[1]
+      alice2.hasOpened = true
+      alice2.score = 1500
+      alice2.checkpointHistory = [0, 1000, 1500]
+      bob2.hasOpened = true
+      bob2.score = 500
+      bob2.checkpointHistory = [0, 500]
+      gameCol2.welcomeCardGivenTo = [0, 1]
+
+      gameCol2.currentPlayerIndex = 1
+      const colEvents2 = gameCol2.recordTurn(1000)
+      expect(colEvents2.some((e) => e.type === 'consolation')).toBe(false)
+      expect(alice2.unrewardedDrops).toBe(1)
+
+      // Pity rule: when unrewardedDrops >= 2, consolation guaranteed even with rng >= 0.5
+      alice2.unrewardedDrops = 2
+      gameCol2.handleConsolation(0, colEvents2, 'collision')
+      expect(alice2.unrewardedDrops).toBe(0)
+
+      // 3. Miroir reflection awards consolation to attacker
+      rngVal = 0.1
+      const gameMir = new Game(['Alice', 'Bob'], {
+        mode: 'dix-mille-bonus',
+        rng: () => rngVal,
+      })
+      const aliceMir = gameMir.players[0]
+      const bobMir = gameMir.players[1]
+      aliceMir.hasOpened = true
+      aliceMir.score = 2000
+      aliceMir.checkpointHistory = [0, 1000, 2000]
+
+      bobMir.hasOpened = true
+      bobMir.score = 2000
+      bobMir.checkpointHistory = [0, 1000, 2000]
+      bobMir.hand = ['miroir']
+      gameMir.welcomeCardGivenTo = [0, 1]
+
+      gameMir.pendingInteractions.push({
+        type: 'defensive-reaction',
+        victimIndex: 1,
+        attackerIndex: 0,
+        from: 2000,
+        to: 1000,
+        checkpointHistoryBefore: [0, 1000, 2000],
+        availableCards: ['miroir'],
+      })
+
+      const mirEvents = gameMir.resolvePendingInteraction({ cardId: 'miroir' })
+      expect(mirEvents).toContainEqual(
+        expect.objectContaining({ type: 'downgrade', player: 'Alice', from: 2000, to: 1000 })
+      )
+      expect(mirEvents).toContainEqual(
+        expect.objectContaining({ type: 'consolation', player: 'Alice' })
+      )
+    })
+
+    it('triggers Red Zone at 9000 without sabotage cards and blocks offensive cards', () => {
+      const game = new Game(['Alice', 'Bob'], { mode: 'dix-mille-bonus' })
+      const alice = game.players[0]
+      const bob = game.players[1]
+
+      alice.hasOpened = true
+      alice.score = 8000
+      alice.checkpointHistory = [0, 8000]
+      alice.highestTierReached = 5000
+      game.crossedGlobalTiers = [5000]
+      game.welcomeCardGivenTo = [0, 1]
+
+      const events = game.recordTurn(1000)
+      expect(alice.score).toBe(9000)
+      expect(events).toContainEqual(
+        expect.objectContaining({
+          type: 'red-zone',
+          player: 'Alice',
+          threshold: 9000,
+          sabotage: false,
+        })
+      )
+      // No sabotage cards given to Bob
+      expect(bob.hand).toHaveLength(0)
+
+      // Alice cannot play offensive cards (e.g. gel, malediction, pickpocket)
+      game.currentPlayerIndex = 0
+      alice.hand.push('gel')
+      expect(() => game.playCard('gel', { targetIndex: 1 })).toThrow(
+        'Cannot play offensive card in Red Zone'
+      )
+    })
+
+    it('steals 500 points with pickpocket and validates threshold of 500 in dix-mille-bonus', () => {
+      const game = new Game(['Alice', 'Bob'], { mode: 'dix-mille-bonus' })
+      const alice = game.players[0]
+      const bob = game.players[1]
+
+      alice.hasOpened = true
+      alice.score = 500
+      alice.checkpointHistory = [0, 500]
+      alice.hand.push('pickpocket')
+
+      // Bob has 400 (< 500)
+      bob.hasOpened = true
+      bob.score = 400
+      bob.checkpointHistory = [0, 400]
+
+      expect(() => game.playCard('pickpocket')).toThrow('No opponent with at least 500 points')
+
+      // Bob reaches 500
+      bob.score = 500
+      bob.checkpointHistory = [0, 500]
+
+      const events = game.playCard('pickpocket')
+      expect(events).toContainEqual({
+        type: 'pickpocket',
+        thief: 'Alice',
+        victim: 'Bob',
+        amount: 500,
+      })
+      expect(bob.score).toBe(0)
+      expect(alice.score).toBe(1000)
+    })
+
+    it('never updates crown and never triggers periodic table events', () => {
+      const game = new Game(['Alice', 'Bob'], { mode: 'dix-mille-bonus' })
+      game.welcomeCardGivenTo = [0, 1]
+
+      // Play 20 turns (10 table rounds)
+      for (let i = 0; i < 20; i++) {
+        game.recordTurn(500)
+      }
+      expect(game.tableRoundCount).toBe(10)
+      expect(game.crownHolderIndex).toBeNull()
+      expect(game.activeTableEvent).toBeNull()
+      expect(game.events.some((e) => e.type === 'crown-changed')).toBe(false)
+      expect(game.events.some((e) => e.type === 'table-event')).toBe(false)
+    })
+
+    it('filters achievements to only premier-sang, miracule, and coup-declat', () => {
+      const game = new Game(['Alice', 'Bob'], { mode: 'dix-mille-bonus' })
+      const alice = game.players[0]
+      const bob = game.players[1]
+      alice.hasOpened = true
+      alice.score = 500
+      alice.checkpointHistory = [0, 500]
+      bob.hasOpened = true
+      bob.score = 2500
+      bob.checkpointHistory = [0, 2500]
+      game.welcomeCardGivenTo = [0, 1]
+
+      // Alice scores 2000 -> cumulative 2500 -> collides with Bob!
+      // Triggers coup-declat AND premier-sang!
+      const events = game.recordTurn(2000)
+      expect(events).toContainEqual(
+        expect.objectContaining({ type: 'achievement', achievementId: 'coup-declat' })
+      )
+      expect(events).toContainEqual(
+        expect.objectContaining({ type: 'achievement', achievementId: 'premier-sang' })
+      )
+
+      // Test that unallowed achievements (e.g. bourreau or phenix) are not awarded
+      alice.achievements = []
+      alice.scoreBeforeLastDrop = 3000
+      alice.score = 1000
+      alice.checkpointHistory = [0, 1000]
+      game.currentPlayerIndex = 0
+      // Turn with score 2000 recovers from drop (phenix condition)
+      const events2 = game.recordTurn(2000)
+      expect(events2.some((e) => e.achievementId === 'phenix')).toBe(false)
+    })
+
+    it('serializes snapshot, deserializes, and restores welcomeCardGivenTo on undo in dix-mille-bonus', () => {
+      const game = new Game(['Alice', 'Bob'], { mode: 'dix-mille-bonus' })
+      game.recordTurn(600) // Alice 600
+      game.recordTurn(500) // Bob 500 (no collision)
+      game.recordTurn(500) // Alice 1100 -> welcome card!
+      expect(game.welcomeCardGivenTo).toEqual([0])
+
+      const snapshot = game.getSnapshot()
+      expect(snapshot.welcomeCardGivenTo).toEqual([0])
+      expect(snapshot.redZoneThreshold).toBe(9000)
+      expect(snapshot.handLimit).toBe(2)
+
+      const restored = Game.fromSnapshot(snapshot)
+      expect(restored.welcomeCardGivenTo).toEqual([0])
+      expect(restored.getSnapshot()).toEqual(snapshot)
+
+      // Undo the welcome card turn
+      game.undoLastEvent()
+      expect(game.welcomeCardGivenTo).toEqual([])
+      expect(game.players[0].hand).toHaveLength(0)
+    })
+  })
+
+  describe('Cent Mille mode regressions verification', () => {
+    it('keeps Cent Mille rules: crown, hand limit 3, pickpocket 1000, periodic events, sabotage cards, consolation on bust', () => {
+      const game = new Game(['Alice', 'Bob'], { mode: 'cent-mille' })
+      expect(game.targetScore).toBe(100000)
+      expect(game.modeConfig.handLimit).toBe(3)
+      expect(game.modeConfig.crownEnabled).toBe(true)
+      expect(game.modeConfig.periodicTableEventsEnabled).toBe(true)
+      expect(game.modeConfig.redZoneThreshold).toBe(90000)
+      expect(game.modeConfig.redZoneSabotageEnabled).toBe(true)
+      expect(game.modeConfig.pickpocketAmount).toBe(1000)
+      expect(game.modeConfig.consolationCollisionOnly).toBe(false)
+      expect(game.modeConfig.consolationProbability).toBeCloseTo(1 / 3)
+      expect(game.modeConfig.welcomeCardThreshold).toBeNull()
+
+      // Hand limit of 3
+      game.giveCardToPlayer(0, 'bouclier')
+      game.giveCardToPlayer(0, 'doubleur')
+      game.giveCardToPlayer(0, 'gel')
+      expect(game.players[0].hand).toHaveLength(3)
+      expect(game.pendingInteractions).toHaveLength(0)
+
+      // Consolation on 3-fail drop still possible (with pity or prob)
+      const alice = game.players[0]
+      alice.hasOpened = true
+      alice.score = 20000
+      alice.checkpointHistory = [0, 10000, 20000]
+      alice.failedTurnsInRow = 2
+      alice.unrewardedDrops = 2 // pity rule
+      const bustEvents = game.recordBust()
+      expect(bustEvents).toContainEqual(
+        expect.objectContaining({ type: 'consolation', player: 'Alice' })
+      )
+
+      // Pickpocket requires 1000
+      game.currentPlayerIndex = 0
+      alice.hand.push('pickpocket')
+      expect(() => game.playCard('pickpocket')).toThrow('No opponent with at least 1000 points')
+
+      // Red zone distributes sabotage cards
+      alice.score = 89000
+      alice.checkpointHistory = [0, 89000]
+      game.currentPlayerIndex = 0
+      const rzEvents = game.recordTurn(1000)
+      expect(rzEvents).toContainEqual(
+        expect.objectContaining({
+          type: 'red-zone',
+          threshold: 90000,
+          sabotage: true,
+        })
+      )
+      expect(game.players[1].hand.length).toBeGreaterThan(0)
+    })
+  })
 })

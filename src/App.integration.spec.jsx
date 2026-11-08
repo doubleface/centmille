@@ -403,4 +403,48 @@ describe('App Cent Mille integration', () => {
     fireEvent.click(screen.getByText('Confirmer'))
     expect(screen.getByText('Erreur reset')).toBeTruthy()
   })
+
+  it('starts a Dix Mille Bonus game from SetupScreen and shows filtered Grimoire & redZone at 9000', () => {
+    activeSnapshot = null
+
+    const { rerender } = render(<App />)
+
+    fireEvent.click(screen.getByTestId('mode-dix-mille-bonus'))
+    fireEvent.click(screen.getByText('Commencer la partie'))
+
+    expect(mockStartGame).toHaveBeenCalledWith(['Joueur 1', 'Joueur 2'], {
+      mode: 'dix-mille-bonus',
+    })
+
+    // Now active snapshot in dix-mille-bonus
+    activeSnapshot = {
+      mode: 'dix-mille-bonus',
+      players: [
+        { name: 'Alice', score: 9100, hasOpened: true, hand: ['pickpocket'] },
+        { name: 'Bob', score: 1000, hasOpened: true, hand: [] },
+      ],
+      currentPlayerIndex: 0,
+      winnerIndex: null,
+      events: [],
+      discoveredIds: ['card:pickpocket'],
+      redZoneEnabled: true,
+      // redZoneThreshold not specified in snapshot -> fallback from resolveGameMode should be 9000
+    }
+
+    rerender(<App />)
+
+    // Alice has score 9100 >= 9000 -> red-zone badge
+    const aliceBadges = screen.getByTestId('badges-Alice')
+    expect(aliceBadges.textContent).toContain('🚨')
+
+    // Open Grimoire
+    fireEvent.click(screen.getByLabelText('Menu de la partie'))
+    const grimoireBtn = screen.getByTestId('menu-open-grimoire')
+    expect(grimoireBtn).toBeTruthy()
+    fireEvent.click(grimoireBtn)
+
+    // Filtered count for dix-mille-bonus
+    expect(screen.getByText(/🃏 Cartes \(1\/18\)/)).toBeTruthy()
+    expect(screen.getByText(/🔮 Nombres magiques \(0\/3\)/)).toBeTruthy()
+  })
 })

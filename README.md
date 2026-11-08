@@ -9,6 +9,12 @@ L'application reproduit fidèlement la feuille de score papier (colonnes des jou
 - Historique complet et annulation pas-à-pas (Undo)
 - Persistance locale continue (`localStorage`)
 
+## Modes de jeu
+
+- **⚡ Partie rapide (10 000)** : Règles traditionnelles du 10 000, sans bonus ni cartes.
+- **🎁 Dix Mille Bonus (10 000)** : Format court avec un concentré de bonus (deck de 17 cartes, main limitée à 2 cartes, palier unique à 5 000, nombres magiques, événements de table et succès, sans boutique ni prime). Voir les [règles complètes du mode Dix Mille Bonus](docs/dix-mille-bonus.md).
+- **👑 Cent Mille (100 000)** : Soirée complète avec 37 cartes jokers, boutique aux 4 paliers (20k, 40k, 60k, 80k), prime de la couronne, zone rouge avec cartes sabotage, événements périodiques et Grimoire de collection.
+
 ## Stack
 
 - **React 19**

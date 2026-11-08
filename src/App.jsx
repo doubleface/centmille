@@ -5,6 +5,7 @@ import { RevealModal } from './components/RevealModal.jsx'
 import { SetupScreen } from './components/SetupScreen.jsx'
 import { WinnerBanner } from './components/WinnerBanner.jsx'
 import { CARDS } from './game/cardsCatalog.js'
+import { resolveGameMode } from './game/GameMode.js'
 import { useGame } from './hooks/useGame.js'
 import soundPlayer, { playSound } from './sound/soundPlayer.js'
 
@@ -240,6 +241,11 @@ export const App = () => {
   const rowsByPlayer = useMemo(() => buildRowsByPlayer(snapshot), [snapshot])
   const currentPlayer = snapshot ? snapshot.players[snapshot.currentPlayerIndex] : null
   const winner = snapshot?.winnerIndex === null ? null : snapshot?.players[snapshot.winnerIndex]?.name
+  const mode = snapshot?.mode ?? 'quick-10k'
+  const modeConfig = resolveGameMode(
+    typeof snapshot?.mode === 'object' ? snapshot.mode : { mode }
+  )
+  const defaultRedZoneThreshold = modeConfig.redZoneThreshold ?? 90000
 
   const processActionEvents = (actionEvents, { queueCollisions = true } = {}) => {
     if (!Array.isArray(actionEvents)) return
@@ -387,14 +393,14 @@ export const App = () => {
           errorMessage={errorMessage}
           collisionReview={activeCollisionReview}
           onNextCollision={handleNextCollision}
-          mode={snapshot?.mode ?? 'quick-10k'}
+          mode={mode}
           playerStates={snapshot?.players ?? []}
           currentPlayerIndex={snapshot?.currentPlayerIndex ?? 0}
           activeTableEvent={snapshot?.activeTableEvent ?? null}
           crownHolderIndex={snapshot?.crownHolderIndex ?? null}
           bombState={snapshot?.bombState ?? null}
           redZoneEnabled={Boolean(snapshot?.redZoneEnabled)}
-          redZoneThreshold={snapshot?.redZoneThreshold ?? 90000}
+          redZoneThreshold={snapshot?.redZoneThreshold ?? defaultRedZoneThreshold}
           activeTurnModifiers={snapshot?.activeTurnModifiers ?? {}}
           lastTurnWasBust={Boolean(snapshot?.lastTurnWasBust)}
           lastPlayedCardId={snapshot?.lastPlayedCardId ?? null}
@@ -412,11 +418,15 @@ export const App = () => {
         players={snapshot?.players ?? []}
         onDismissReveal={() => setRevealQueue((q) => q.slice(1))}
         onResolveInteraction={handleResolveInteraction}
+        mode={mode}
+        modeConfig={modeConfig}
       />
       <GrimoireModal
         isOpen={isGrimoireOpen}
         discoveredIds={snapshot?.discoveredIds ?? []}
         onClose={() => setIsGrimoireOpen(false)}
+        mode={mode}
+        modeConfig={modeConfig}
       />
       <WinnerBanner winner={winner} />
     </main>

@@ -181,6 +181,38 @@ describe('RevealModal', () => {
 
       expect(screen.getByText('🚨 Zone Rouge !')).toBeTruthy()
       expect(screen.getByText(/Alice a franchi les 90 000 points/)).toBeTruthy()
+      expect(screen.getByText(/les adversaires préparent leur sabotage !/)).toBeTruthy()
+    })
+
+    it('renders red-zone event with custom threshold and sabotage disabled (dix-mille-bonus)', () => {
+      const revealEvent = {
+        type: 'red-zone',
+        player: 'Bob',
+        threshold: 9000,
+        sabotage: false,
+      }
+      render(<RevealModal revealEvent={revealEvent} mode="dix-mille-bonus" />)
+
+      expect(screen.getByText('🚨 Zone Rouge !')).toBeTruthy()
+      expect(
+        screen.getByText(
+          /Bob a franchi les 9[\s\u202f]000 points et entre dans la Zone Rouge ! Les cartes offensives lui sont interdites !/
+        )
+      ).toBeTruthy()
+      expect(screen.queryByText(/sabotage/i)).toBeNull()
+    })
+
+    it('displays pickpocket descriptions with 500 points in dix-mille-bonus mode', () => {
+      const revealEvent = {
+        type: 'card-drawn',
+        player: 'Alice',
+        cardId: 'pickpocket',
+      }
+      render(<RevealModal revealEvent={revealEvent} mode="dix-mille-bonus" />)
+
+      expect(screen.getByText(/Alice pioche 🕵️ Le Pickpocket/)).toBeTruthy()
+      expect(screen.getByText(/vole 500 points au joueur actuellement en tête/i)).toBeTruthy()
+      expect(screen.queryByText(/vole 1 000 points/i)).toBeNull()
     })
 
     it('renders bomb-exploded event', () => {
@@ -315,6 +347,25 @@ describe('RevealModal', () => {
       expect(onResolveInteraction).toHaveBeenCalledWith({
         discardedCardId: 'arrondi',
       })
+    })
+
+    it('adapts hand-overflow description to handLimit in dix-mille-bonus mode', () => {
+      const pendingInteraction = {
+        type: 'hand-overflow',
+        choices: ['arrondi', 'doubleur', 'gel'],
+      }
+
+      render(
+        <RevealModal
+          pendingInteraction={pendingInteraction}
+          mode="dix-mille-bonus"
+        />
+      )
+
+      expect(screen.getByText('✋ Main pleine')).toBeTruthy()
+      expect(
+        screen.getByText(/Main pleine \(max 2 cartes\) : choisissez quelle carte défausser/)
+      ).toBeTruthy()
     })
 
     it('handles defensive-reaction interaction with choice or skip', () => {

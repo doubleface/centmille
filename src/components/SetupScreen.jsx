@@ -26,6 +26,8 @@ export const SetupScreen = ({ onStart, preloadStatus = null }) => {
     if (players.length >= MIN_PLAYERS) {
       if (mode === 'cent-mille') {
         onStart(players, { mode: 'cent-mille', redZoneEnabled, shopEnabled })
+      } else if (mode === 'dix-mille-bonus') {
+        onStart(players, { mode: 'dix-mille-bonus' })
       } else {
         onStart(players)
       }
@@ -47,6 +49,17 @@ export const SetupScreen = ({ onStart, preloadStatus = null }) => {
           >
             <span className="mode-card__title">⚡ Partie rapide (10 000)</span>
             <span className="mode-card__desc">Règles classiques, sans bonus</span>
+          </button>
+          <button
+            type="button"
+            data-testid="mode-dix-mille-bonus"
+            className={`mode-card ${mode === 'dix-mille-bonus' ? 'mode-card--active' : ''}`}
+            onClick={() => setMode('dix-mille-bonus')}
+          >
+            <span className="mode-card__title">🎁 Dix Mille Bonus (10 000)</span>
+            <span className="mode-card__desc">
+              Avant-goût : cartes, nombres magiques et succès
+            </span>
           </button>
           <button
             type="button"

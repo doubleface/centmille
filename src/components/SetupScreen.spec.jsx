@@ -93,6 +93,26 @@ describe('SetupScreen', () => {
     })
   })
 
+  it('supports selecting Dix Mille Bonus mode without extra options and submitting', () => {
+    const onStart = vi.fn()
+    render(<SetupScreen onStart={onStart} />)
+
+    const dixMilleBonusBtn = screen.getByTestId('mode-dix-mille-bonus')
+    expect(dixMilleBonusBtn.textContent).toContain('🎁 Dix Mille Bonus (10 000)')
+    expect(dixMilleBonusBtn.textContent).toContain('Avant-goût : cartes, nombres magiques et succès')
+
+    fireEvent.click(dixMilleBonusBtn)
+
+    // No extra options should be visible
+    expect(screen.queryByTestId('toggle-red-zone')).toBeNull()
+    expect(screen.queryByTestId('toggle-shop')).toBeNull()
+
+    fireEvent.click(screen.getByText('Commencer la partie'))
+    expect(onStart).toHaveBeenCalledWith(['Joueur 1', 'Joueur 2'], {
+      mode: 'dix-mille-bonus',
+    })
+  })
+
   it('allows switching from Cent Mille back to quick-10k mode', () => {
     const onStart = vi.fn()
     render(<SetupScreen onStart={onStart} />)
