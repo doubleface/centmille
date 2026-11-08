@@ -118,6 +118,28 @@ describe('buildRowsByPlayer', () => {
     expect(rowsByPlayer.Bob[1]).toMatchObject({ label: '400', isDowngraded: false })
   })
 
+  it('clears displayed bust marks when effaceur is played and resumes counting from 0', () => {
+    const snapshot = {
+      players: [{ name: 'Alice', score: 1200, failedTurnsInRow: 1 }, { name: 'Bob', score: 0 }],
+      events: [
+        { type: 'score', player: 'Alice', cumulative: 1200 },
+        { type: 'bust', player: 'Alice' },
+        { type: 'bust', player: 'Alice' },
+        { type: 'card-played', player: 'Alice', cardId: 'effaceur' },
+        { type: 'bust', player: 'Alice' },
+      ],
+    }
+
+    const rowsByPlayer = buildRowsByPlayer(snapshot)
+
+    expect(rowsByPlayer.Alice).toHaveLength(1)
+    expect(rowsByPlayer.Alice[0]).toMatchObject({
+      label: '1200',
+      isDowngraded: false,
+      bustCount: 1,
+    })
+  })
+
   it('builds a collision review queue for effective downgrades', () => {
     const actionEvents = [
       { type: 'score', player: 'Alice', cumulative: 1200 },

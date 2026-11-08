@@ -1,4 +1,4 @@
-const CACHE_NAME = 'centmille-v7'
+const CACHE_NAME = 'centmille-v8'
 const CORE_ASSETS = ['./manifest.webmanifest', './icon.svg']
 const MATCH_OPTIONS = { ignoreSearch: true, ignoreVary: true }
 

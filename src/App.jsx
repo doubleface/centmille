@@ -115,30 +115,51 @@ export const buildRowsByPlayer = (snapshot) => {
       })
     }
 
+    if (
+      event.type === 'busts-cleared' ||
+      (event.type === 'card-played' && event.cardId === 'effaceur')
+    ) {
+      if (rows.length > 0) {
+        rows[rows.length - 1] = {
+          ...rows[rows.length - 1],
+          bustCount: 0,
+        }
+      }
+    }
+
     rowsByPlayer[event.player] = rows
   }
 
   if (Array.isArray(snapshot.players)) {
     for (const player of snapshot.players) {
+      const rows = rowsByPlayer[player.name] ?? []
+
       if (typeof player.score === 'number' && player.score > 0) {
-        const rows = rowsByPlayer[player.name] ?? []
         const lastActive = rows.findLast((r) => !r.isDowngraded && r.label !== '—')
 
         if (!lastActive || Number(lastActive.label) !== player.score) {
           for (let i = 0; i < rows.length; i++) {
             if (!rows[i].isDowngraded && rows[i].label !== '—') {
-              rows[i] = { ...rows[i], isDowngraded: true }
+              rows[i] = { ...rows[i], isDowngraded: true, bustCount: 0 }
             }
           }
           rows.push({
             label: String(player.score),
             variant: 'normal',
             isDowngraded: false,
-            bustCount: 0,
+            bustCount: player.failedTurnsInRow ?? 0,
           })
-          rowsByPlayer[player.name] = rows
         }
       }
+
+      if (typeof player.failedTurnsInRow === 'number' && rows.length > 0) {
+        rows[rows.length - 1] = {
+          ...rows[rows.length - 1],
+          bustCount: player.failedTurnsInRow,
+        }
+      }
+
+      rowsByPlayer[player.name] = rows
     }
   }
 
