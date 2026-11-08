@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "share": "npm run build && (npx vite preview --port 4173 --strictPort & ssh -o StrictHostKeyChecking=accept-new -R 80:localhost:4173 nokey@localhost.run; kill 0)",
+    "share": "npm run build && (npx vite preview --host 127.0.0.1 --port 4173 --strictPort & ssh -o StrictHostKeyChecking=accept-new -R 80:127.0.0.1:4173 nokey@localhost.run; kill 0)",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

@@ -8,13 +8,23 @@ import { CARDS } from './game/cardsCatalog.js'
 import { useGame } from './hooks/useGame.js'
 import soundPlayer, { playSound } from './sound/soundPlayer.js'
 
-export const preloadCardImages = () => {
-  for (const card of CARDS) {
-    if (card.image && typeof window !== 'undefined' && typeof window.Image === 'function') {
-      const img = new window.Image()
-      img.src = card.image
-    }
+export const preloadCardImages = (cards = CARDS) => {
+  if (typeof window === 'undefined' || typeof window.Image !== 'function') return
+
+  const urls = cards.map((card) => card.image).filter(Boolean)
+  let index = 0
+
+  const loadNext = () => {
+    if (index >= urls.length) return
+    const img = new window.Image()
+    const currentUrl = urls[index]
+    index += 1
+    img.onload = loadNext
+    img.onerror = loadNext
+    img.src = currentUrl
   }
+
+  loadNext()
 }
 
 export const REVEALABLE_EVENT_TYPES = [
@@ -168,7 +178,8 @@ export const App = () => {
   const [isMuted, setIsMuted] = useState(() => soundPlayer.isMuted())
 
   useEffect(() => {
-    preloadCardImages()
+    const timer = setTimeout(preloadCardImages, 1500)
+    return () => clearTimeout(timer)
   }, [])
 
   const {

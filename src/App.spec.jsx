@@ -7,6 +7,7 @@ import {
   buildRevealQueue,
   buildRowsByPlayer,
   playDowngradeSound,
+  preloadCardImages,
 } from './App.jsx'
 
 describe('buildRowsByPlayer', () => {
@@ -213,5 +214,36 @@ describe('buildRowsByPlayer', () => {
     expect(startMock).toHaveBeenCalledTimes(8)
     expect(stopMock).toHaveBeenCalledTimes(8)
     delete window.AudioContext
+  })
+
+  it('preloads card images sequentially one by one', () => {
+    const loadedUrls = []
+    const originalImage = window.Image
+
+    window.Image = class {
+      set src(url) {
+        loadedUrls.push(url)
+        if (url === '/cards/fail.jpg') {
+          this.onerror?.()
+        } else {
+          this.onload?.()
+        }
+      }
+    }
+
+    preloadCardImages([
+      { image: '/cards/one.jpg' },
+      { image: '' },
+      { image: '/cards/fail.jpg' },
+      { image: '/cards/two.jpg' },
+    ])
+
+    expect(loadedUrls).toEqual(['/cards/one.jpg', '/cards/fail.jpg', '/cards/two.jpg'])
+
+    window.Image = null
+    preloadCardImages([{ image: '/cards/three.jpg' }])
+    expect(loadedUrls).toHaveLength(3)
+
+    window.Image = originalImage
   })
 })
