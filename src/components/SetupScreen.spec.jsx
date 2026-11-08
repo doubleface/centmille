@@ -107,4 +107,29 @@ describe('SetupScreen', () => {
     fireEvent.click(screen.getByText('Commencer la partie'))
     expect(onStart).toHaveBeenCalledWith(['Joueur 1', 'Joueur 2'])
   })
+
+  it('displays offline preload progress and completion status', () => {
+    const onStart = vi.fn()
+    const { rerender } = render(
+      <SetupScreen
+        onStart={onStart}
+        preloadStatus={{ loaded: 12, processed: 12, total: 37, done: false }}
+      />
+    )
+
+    expect(screen.getByTestId('offline-preload-status').textContent).toContain(
+      '📥 Mise en cache hors-ligne : 12 / 37 cartes…'
+    )
+
+    rerender(
+      <SetupScreen
+        onStart={onStart}
+        preloadStatus={{ loaded: 36, processed: 37, total: 37, done: true }}
+      />
+    )
+
+    expect(screen.getByTestId('offline-preload-status').textContent).toContain(
+      '✅ Prêt hors-ligne (36 / 37 illustrations en cache)'
+    )
+  })
 })

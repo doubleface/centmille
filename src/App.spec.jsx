@@ -216,8 +216,9 @@ describe('buildRowsByPlayer', () => {
     delete window.AudioContext
   })
 
-  it('preloads card images sequentially one by one', () => {
+  it('preloads card images sequentially one by one and reports progress', () => {
     const loadedUrls = []
+    const progressEvents = []
     const originalImage = window.Image
 
     window.Image = class {
@@ -231,14 +232,23 @@ describe('buildRowsByPlayer', () => {
       }
     }
 
-    preloadCardImages([
-      { image: '/cards/one.jpg' },
-      { image: '' },
-      { image: '/cards/fail.jpg' },
-      { image: '/cards/two.jpg' },
-    ])
+    preloadCardImages(
+      [
+        { image: '/cards/one.jpg' },
+        { image: '' },
+        { image: '/cards/fail.jpg' },
+        { image: '/cards/two.jpg' },
+      ],
+      (status) => progressEvents.push(status)
+    )
 
     expect(loadedUrls).toEqual(['/cards/one.jpg', '/cards/fail.jpg', '/cards/two.jpg'])
+    expect(progressEvents).toEqual([
+      { loaded: 0, processed: 0, total: 3, done: false },
+      { loaded: 1, processed: 1, total: 3, done: false },
+      { loaded: 1, processed: 2, total: 3, done: false },
+      { loaded: 2, processed: 3, total: 3, done: true },
+    ])
 
     window.Image = null
     preloadCardImages([{ image: '/cards/three.jpg' }])

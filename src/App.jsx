@@ -8,19 +8,33 @@ import { CARDS } from './game/cardsCatalog.js'
 import { useGame } from './hooks/useGame.js'
 import soundPlayer, { playSound } from './sound/soundPlayer.js'
 
-export const preloadCardImages = (cards = CARDS) => {
+export const preloadCardImages = (cards = CARDS, onProgress = null) => {
   if (typeof window === 'undefined' || typeof window.Image !== 'function') return
 
   const urls = cards.map((card) => card.image).filter(Boolean)
+  const total = urls.length
   let index = 0
+  let loaded = 0
+  let processed = 0
+
+  onProgress?.({ loaded: 0, processed: 0, total, done: total === 0 })
 
   const loadNext = () => {
-    if (index >= urls.length) return
+    if (index >= total) return
     const img = new window.Image()
     const currentUrl = urls[index]
     index += 1
-    img.onload = loadNext
-    img.onerror = loadNext
+    img.onload = () => {
+      loaded += 1
+      processed += 1
+      onProgress?.({ loaded, processed, total, done: processed >= total })
+      loadNext()
+    }
+    img.onerror = () => {
+      processed += 1
+      onProgress?.({ loaded, processed, total, done: processed >= total })
+      loadNext()
+    }
     img.src = currentUrl
   }
 
@@ -176,9 +190,15 @@ export const App = () => {
   const [revealQueue, setRevealQueue] = useState([])
   const [isGrimoireOpen, setIsGrimoireOpen] = useState(false)
   const [isMuted, setIsMuted] = useState(() => soundPlayer.isMuted())
+  const [preloadStatus, setPreloadStatus] = useState(() => ({
+    loaded: 0,
+    processed: 0,
+    total: CARDS.length,
+    done: false,
+  }))
 
   useEffect(() => {
-    const timer = setTimeout(preloadCardImages, 1500)
+    const timer = setTimeout(preloadCardImages, 500, CARDS, setPreloadStatus)
     return () => clearTimeout(timer)
   }, [])
 
@@ -333,7 +353,7 @@ export const App = () => {
   return (
     <main>
       {!hasGame ? (
-        <SetupScreen onStart={handleStart} />
+        <SetupScreen onStart={handleStart} preloadStatus={preloadStatus} />
       ) : (
         <GameScreen
           players={players}

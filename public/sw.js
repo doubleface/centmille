@@ -1,4 +1,4 @@
-const CACHE_NAME = 'centmille-v6'
+const CACHE_NAME = 'centmille-v7'
 const CORE_ASSETS = ['./manifest.webmanifest', './icon.svg']
 const MATCH_OPTIONS = { ignoreSearch: true, ignoreVary: true }
 
@@ -41,15 +41,23 @@ self.addEventListener('fetch', (event) => {
       }
 
       return fetch(event.request)
-        .then((response) => {
+        .then(async (response) => {
           if (!response.ok) {
-            return caches.match('./', MATCH_OPTIONS) || response
+            if (event.request.mode === 'navigate') {
+              return (await caches.match('./', MATCH_OPTIONS)) || response
+            }
+            return response
           }
           const copy = response.clone()
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy))
           return response
         })
-        .catch(async () => (await caches.match('./', MATCH_OPTIONS)) || Response.error())
+        .catch(async () => {
+          if (event.request.mode === 'navigate') {
+            return (await caches.match('./', MATCH_OPTIONS)) || Response.error()
+          }
+          return Response.error()
+        })
     })
   )
 })

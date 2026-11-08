@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 
 const MIN_PLAYERS = 2
 
-export const SetupScreen = ({ onStart }) => {
+export const SetupScreen = ({ onStart, preloadStatus = null }) => {
   const [playerNames, setPlayerNames] = useState(['Joueur 1', 'Joueur 2'])
   const [mode, setMode] = useState('quick-10k')
   const [redZoneEnabled, setRedZoneEnabled] = useState(true)
@@ -118,6 +118,16 @@ export const SetupScreen = ({ onStart }) => {
           </button>
         </div>
       </form>
+      {preloadStatus && preloadStatus.total > 0 ? (
+        <div
+          className={`offline-status ${preloadStatus.done ? 'offline-status--done' : ''}`}
+          data-testid="offline-preload-status"
+        >
+          {preloadStatus.done
+            ? `✅ Prêt hors-ligne (${preloadStatus.loaded} / ${preloadStatus.total} illustrations en cache)`
+            : `📥 Mise en cache hors-ligne : ${preloadStatus.processed} / ${preloadStatus.total} cartes…`}
+        </div>
+      ) : null}
     </section>
   )
 }
