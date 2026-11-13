@@ -84,6 +84,28 @@ export const useGame = () => {
     return restoredSnapshot
   }
 
+  const setDiceMode = (mode) => {
+    if (!game) throw new Error('No active game')
+    game.setDiceMode(mode)
+    saveCurrentGame(game.getSnapshot())
+    setRevision((value) => value + 1)
+  }
+
+  const rollDice = (options) => {
+    if (!game) throw new Error('No active game')
+    game.rollDice(options)
+    saveCurrentGame(game.getSnapshot())
+    setRevision((value) => value + 1)
+  }
+
+  const finishDiceTurn = () => {
+    if (!game) throw new Error('No active game')
+    const actionEvents = game.finishDiceTurn()
+    saveCurrentGame(game.getSnapshot())
+    setRevision((value) => value + 1)
+    return actionEvents
+  }
+
   const resetGame = () => {
     clearCurrentGame()
     setGame(null)
@@ -100,5 +122,8 @@ export const useGame = () => {
     resetGame,
     playCard,
     resolvePendingInteraction,
+    setDiceMode,
+    rollDice,
+    finishDiceTurn,
   }
 }

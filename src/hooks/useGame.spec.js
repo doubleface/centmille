@@ -10,6 +10,13 @@ afterEach(() => {
 })
 
 describe('useGame', () => {
+  it('rejects dice actions without an active game', () => {
+    const { result } = renderHook(() => useGame())
+    expect(() => result.current.setDiceMode('virtual')).toThrow('No active game')
+    expect(() => result.current.rollDice()).toThrow('No active game')
+    expect(() => result.current.finishDiceTurn()).toThrow('No active game')
+  })
+
   it('persists and restores a game snapshot', () => {
     const { result, unmount } = renderHook(() => useGame())
 

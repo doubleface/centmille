@@ -1,6 +1,7 @@
 import React from 'react'
 import { isBonusMode } from '../game/GameMode.js'
 import { CornerMenu } from './CornerMenu.jsx'
+import { DiceTray } from './DiceTray.jsx'
 import { PlayerColumn } from './PlayerColumn.jsx'
 import { PlayerHand } from './PlayerHand.jsx'
 import { ScoreInput } from './ScoreInput.jsx'
@@ -31,6 +32,15 @@ export const GameScreen = ({
   onOpenGrimoire = null,
   isMuted = false,
   onToggleMute = null,
+  diceMode = 'physical',
+  diceTurn = null,
+  diceCarry = null,
+  openingScore = 500,
+  targetScore = 10000,
+  onSetDiceMode = null,
+  onRollDice = null,
+  onFinishDiceTurn = null,
+  diceLocked = false,
 }) => {
   return (
     <section className="sheet-screen">
@@ -98,6 +108,36 @@ export const GameScreen = ({
         })}
       </div>
 
+      {onSetDiceMode ? (
+        <fieldset className="dice-mode" disabled={diceLocked || Boolean(collisionReview) || Boolean(diceTurn && diceTurn.phase !== 'ready')}>
+          <legend>Dés de la partie</legend>
+          <label>
+            <input type="radio" name="dice-mode" value="physical" checked={diceMode === 'physical'} onChange={() => onSetDiceMode('physical')} />
+            Physiques
+          </label>
+          <label>
+            <input type="radio" name="dice-mode" value="virtual" checked={diceMode === 'virtual'} disabled={isBonusMode(mode)} onChange={() => onSetDiceMode('virtual')} />
+            Virtuels
+          </label>
+          {diceCarry ? <p>Passer aux dés physiques abandonne la reprise proposée.</p> : null}
+          {isBonusMode(mode) ? <p>Dés virtuels Bonus en préparation : règles des cartes à compléter.</p> : null}
+          {diceTurn && diceTurn.phase !== 'ready' ? <p>Choix des dés et annulation bloqués pendant le tour.</p> : null}
+        </fieldset>
+      ) : null}
+
+      {diceMode === 'virtual' && diceTurn ? (
+        <DiceTray
+          turn={diceTurn}
+          carry={diceCarry}
+          player={currentPlayer}
+          openingScore={openingScore}
+          targetScore={targetScore}
+          onRoll={onRollDice}
+          onFinish={onFinishDiceTurn}
+          isLocked={diceLocked || Boolean(collisionReview)}
+          errorMessage={errorMessage}
+        />
+      ) : (
       <ScoreInput
         currentPlayer={currentPlayer}
         onValidate={onRecordTurn}
@@ -111,6 +151,7 @@ export const GameScreen = ({
         players={playerStates}
         currentPlayerIndex={currentPlayerIndex}
       />
+      )}
 
       {isBonusMode(mode) ? (
         <PlayerHand
@@ -141,6 +182,7 @@ export const GameScreen = ({
       ) : null}
 
       <CornerMenu
+        canUndo={!diceTurn || (diceTurn.phase === 'ready' && !collisionReview)}
         onUndo={onUndo}
         onResetGame={onResetGame}
         hasGrimoire={isBonusMode(mode)}

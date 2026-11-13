@@ -233,6 +233,9 @@ export const App = () => {
     resetGame,
     playCard,
     resolvePendingInteraction,
+    setDiceMode,
+    rollDice,
+    finishDiceTurn,
   } = useGame()
 
   const players = snapshot ? snapshot.players.map((player) => player.name) : []
@@ -326,6 +329,17 @@ export const App = () => {
     }
   }
 
+  const handleDiceAction = (action) => {
+    try {
+      if (collisionReviewQueue.length > 0 || revealQueue.length > 0 || snapshot?.pendingInteraction || winner) return
+      const actionEvents = action()
+      processActionEvents(actionEvents)
+      setErrorMessage(null)
+    } catch (error) {
+      setErrorMessage(error.message)
+    }
+  }
+
   const handleToggleMute = () => {
     const nextMuted = soundPlayer.toggleMuted()
     setIsMuted(nextMuted)
@@ -408,6 +422,15 @@ export const App = () => {
           onOpenGrimoire={() => setIsGrimoireOpen(true)}
           isMuted={isMuted}
           onToggleMute={handleToggleMute}
+          diceMode={snapshot?.diceMode ?? 'physical'}
+          diceTurn={snapshot?.diceTurn ?? null}
+          diceCarry={snapshot?.diceCarry ?? null}
+          openingScore={snapshot?.openingScore ?? 500}
+          targetScore={snapshot?.targetScore ?? 10000}
+          onSetDiceMode={setDiceMode ? (value) => handleDiceAction(() => setDiceMode(value)) : null}
+          onRollDice={(options) => handleDiceAction(() => rollDice(options))}
+          onFinishDiceTurn={() => handleDiceAction(finishDiceTurn)}
+          diceLocked={Boolean(winner || revealQueue.length > 0 || snapshot?.pendingInteraction || isGrimoireOpen)}
         />
       )}
       <RevealModal

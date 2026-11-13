@@ -1,6 +1,13 @@
 import { evaluateAchievements } from './achievements.js'
 import { drawCardByRarity, drawDistinctCards, drawRandomCard, findCard } from './cardsCatalog.js'
 import { applyCollisionChain } from './collisionChain.js'
+import {
+  diceStopReason,
+  diceToRoll,
+  newDiceTurn,
+  restoreDiceTurn,
+  rollDiceTurn,
+} from './DiceTurn.js'
 import { resolveGameMode } from './GameMode.js'
 import { checkMagicNumber } from './magicNumbers.js'
 import { PlayerState } from './PlayerState.js'
@@ -45,6 +52,9 @@ export class Game {
       openingScore: this.openingScore,
     })
     this.undoStack = []
+    this.diceMode = 'physical'
+    this.diceTurn = null
+    this.diceCarry = null
 
     this.crossedGlobalTiers = []
     this.crownHolderIndex = null
@@ -82,6 +92,46 @@ export class Game {
 
   getCurrentPlayer() {
     return this.players[this.currentPlayerIndex]
+  }
+
+  setDiceMode(mode) {
+    if (this.winner) throw new Error('Game is already over')
+    if (!['physical', 'virtual'].includes(mode)) throw new Error('Mode de dés invalide.')
+    if (mode === 'virtual' && this.modeConfig.jokersEnabled) {
+      throw new Error('Les dés virtuels des variantes Bonus attendent les règles de cartes.')
+    }
+    if (this.diceTurn && this.diceTurn.phase !== 'ready') {
+      throw new Error('Terminez le tour avant de changer de dés.')
+    }
+    this.diceMode = mode
+    this.diceTurn = mode === 'virtual' ? newDiceTurn() : null
+    this.diceCarry = null
+  }
+
+  rollDice({ takeOver = false } = {}) {
+    if (this.winner) throw new Error('Game is already over')
+    if (this.diceMode !== 'virtual') throw new Error('Activez les dés virtuels.')
+    if (takeOver && (!this.diceCarry || this.diceTurn.phase !== 'ready')) {
+      throw new Error('Aucune reprise disponible pour ce tour.')
+    }
+    if (this.getCurrentPlayer().score + this.diceTurn.total > this.targetScore) {
+      throw new Error('La cible est dépassée : confirmez l’échec.')
+    }
+    const turn = takeOver ? newDiceTurn(this.diceCarry) : this.diceTurn
+    const faces = Array.from({ length: diceToRoll(turn) }, () => Math.floor(this.rng() * 6) + 1)
+    this.diceTurn = rollDiceTurn(turn, faces)
+    this.diceCarry = null
+  }
+
+  finishDiceTurn() {
+    if (this.diceMode !== 'virtual') throw new Error('Activez les dés virtuels.')
+    if (this.diceTurn.phase === 'bust') return this.recordBust()
+    if (this.getCurrentPlayer().score + this.diceTurn.total > this.targetScore) {
+      return this.recordBust()
+    }
+    const reason = diceStopReason(this.diceTurn, this.getCurrentPlayer(), this.openingScore)
+    if (reason) throw new Error(reason)
+    return this.recordTurn(this.diceTurn.total)
   }
 
   markDiscovered(key) {
@@ -709,6 +759,11 @@ export class Game {
 
   recordTurn(turnScore, turnOptions = {}) {
     if (this.winner) throw new Error('Game is already over')
+    if (this.diceMode === 'virtual') {
+      const reason = diceStopReason(this.diceTurn, this.getCurrentPlayer(), this.openingScore)
+      if (reason) throw new Error(reason)
+      if (turnScore !== this.diceTurn.total) throw new Error('Validez le cumul calculé des dés.')
+    }
     if (!Number.isInteger(turnScore) || turnScore <= 0) {
       throw new Error('turnScore must be a positive integer')
     }
@@ -765,6 +820,10 @@ export class Game {
         eventsAdded: actionEvents.length,
       })
 
+      this.diceCarry =
+        this.diceMode === 'virtual' && !this.winner
+          ? [...this.diceTurn.inheritedRolls, ...this.diceTurn.rolls].map((faces) => [...faces])
+          : null
       this.advanceTurn()
 
       return actionEvents
@@ -1113,6 +1172,12 @@ export class Game {
 
   recordBust(bustOptions = {}) {
     if (this.winner) throw new Error('Game is already over')
+    if (this.diceMode === 'virtual' && this.diceTurn.phase !== 'bust') {
+      const overshoots = this.getCurrentPlayer().score + this.diceTurn.total > this.targetScore
+      if (this.diceTurn.phase !== 'playing' || !overshoots) {
+        throw new Error('Le lancer ne constitue pas une broucouille.')
+      }
+    }
 
     if (
       this.activeTurnModifiers.assurance &&
@@ -1125,6 +1190,7 @@ export class Game {
     }
 
     const previousSnapshot = this.getSnapshot()
+    this.diceCarry = null
     const player = this.getCurrentPlayer()
     const currentPlayerIndex = this.currentPlayerIndex
     const actionEvents = [{ type: 'bust', player: player.name }]
@@ -1218,6 +1284,7 @@ export class Game {
   }
 
   advanceTurn() {
+    if (this.diceMode === 'virtual') this.diceTurn = newDiceTurn()
     if (!this.modeConfig.jokersEnabled) {
       this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length
       return
@@ -1571,11 +1638,17 @@ export class Game {
   }
 
   undoLastEvent() {
+    if (this.diceTurn && this.diceTurn.phase !== 'ready') {
+      throw new Error('Un lancer est en cours : terminez le tour avant d’annuler le précédent.')
+    }
     const lastAction = this.undoStack.pop()
     if (!lastAction) return null
 
     const restored = Game.fromSnapshot(lastAction.previousSnapshot)
     this.players = restored.players
+    this.diceMode = restored.diceMode
+    this.diceTurn = restored.diceTurn
+    this.diceCarry = restored.diceCarry
     this.currentPlayerIndex = restored.currentPlayerIndex
     this.winner = restored.winner
     this.events = restored.events
@@ -1609,6 +1682,9 @@ export class Game {
       targetScore: this.targetScore,
       openingScore: this.openingScore,
       mode: this.mode,
+      diceMode: this.diceMode,
+      diceTurn: this.diceTurn ? structuredClone(this.diceTurn) : null,
+      diceCarry: this.diceCarry ? this.diceCarry.map((faces) => [...faces]) : null,
       redZoneEnabled: this.modeConfig.redZoneEnabled,
       redZoneThreshold: this.modeConfig.redZoneThreshold,
       shopEnabled: this.modeConfig.shopEnabled,
@@ -1668,6 +1744,11 @@ export class Game {
       shopEnabled: snapshot.shopEnabled,
     })
 
+    if (snapshot.diceMode === 'virtual') {
+      game.setDiceMode('virtual')
+      game.diceTurn = restoreDiceTurn(snapshot.diceTurn)
+      if (snapshot.diceCarry) game.diceCarry = newDiceTurn(snapshot.diceCarry).inheritedRolls
+    }
     game.currentPlayerIndex = snapshot.currentPlayerIndex
 
     for (const [index, playerSnapshot] of snapshot.players.entries()) {

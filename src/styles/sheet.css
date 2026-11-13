@@ -380,6 +380,104 @@ body {
   margin: 0;
 }
 
+/* ---------- Dés virtuels compacts ---------- */
+.dice-tray {
+  margin-top: 0.75rem;
+  gap: 0.4rem;
+}
+
+.dice-tray .turn__player {
+  margin: 0;
+  line-height: 1.35;
+}
+
+.dice-mode {
+  min-width: 0;
+  margin: 1rem 0 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.dice-mode label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  gap: 0.4rem;
+  margin-right: 1rem;
+  cursor: pointer;
+}
+
+.dice-mode p,
+.dice-tray__hint {
+  margin: 0.25rem 0;
+  color: var(--pencil);
+  font-size: 0.95rem;
+}
+
+.dice-tray__dice {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dice-tray__die {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.25rem 0;
+}
+
+.dice-tray__face {
+  display: block;
+  width: 44px;
+  max-width: 100%;
+  height: auto;
+  border: 2px solid var(--rule);
+  border-radius: 8px;
+  background: #fffdf7;
+  color: var(--ink);
+  font: 18px system-ui, sans-serif;
+}
+
+.dice-tray__die--kept .dice-tray__face {
+  border-color: var(--ink);
+  background: #e4ecff;
+}
+
+.dice-tray__die small {
+  font-size: 0.65rem;
+  line-height: 1.5;
+  color: var(--pencil);
+}
+
+.dice-tray__totals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.dice-tray__totals strong {
+  display: block;
+  font-size: 1.6rem;
+}
+
+.dice-tray .btn {
+  min-height: 48px;
+  min-width: 0;
+  flex: 1;
+}
+
+.dice-tray button:focus-visible,
+.dice-mode input:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+}
+
 /* ---------- Coin corné + menu ---------- */
 .dogear {
   position: absolute;
