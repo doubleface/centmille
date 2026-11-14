@@ -635,6 +635,49 @@ describe('parcours App → hook → Game → stockage, sans mocks métier', () =
     expect(saved().currentPlayerIndex).toBe(0)
   })
 
+  it.each([
+    ['teleporteur', false], ['teleporteur', true],
+    ['pickpocket', false], ['pickpocket', true],
+  ])('R10 App trois joueurs : %s copié=%s, carte conservée au refus/reload et continuation réelle', (card, copied) => {
+    const game = new Game(['Alice', 'Bob', 'Charlie'], {
+      mode: 'cent-mille', redZoneEnabled: card === 'teleporteur', rng: () => 0.99,
+    })
+    if (copied) game.players[0].validateTurn(98500)
+    game.players[1].validateTurn(copied ? 97500 : 98500)
+    game.players[2].validateTurn(99500)
+    game.players[1].hand = copied ? ['aspirateur', card, 'echo'] : ['aspirateur', card]
+    game.setDiceMode('virtual')
+    const values = [1, 1, 1, 2, 3, 2, 3].map(face => (face - 0.5) / 6)
+    game.rng = () => values.length ? values.shift() : 0.99
+    game.rollDice()
+    game.rollDice()
+    game.finishDiceTurn()
+    game.playCard('aspirateur')
+    if (copied) game.playCard(card)
+    const view = mountGame(game)
+    const before = saved()
+    const played = copied ? 'echo' : card
+    fireEvent.click(screen.getByTestId(`hand-card-${played}-0`))
+    click('Utiliser')
+    expect(screen.getByRole('alert').textContent).toMatch(/carte.*dépasserait/)
+    expect(saved()).toEqual(before)
+    expect(screen.queryByRole('button', { name: 'Confirmer l’échec (dépassement)' })).toBeNull()
+    view.unmount()
+    render(<App />)
+    expect(saved()).toEqual(before)
+    expect(screen.getByTestId(`hand-card-${played}-0`)).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Arrêter et marquer' }).disabled).toBe(true)
+    seed([1, 2])
+    click('Lancer les 2 dés')
+    expect(saved().diceTurn.total).toBe(1100)
+    expect(saved().players[1].hand).toContain(played)
+    seed(Array(30).fill(6))
+    click('Arrêter et marquer')
+    expect(saved().players[1].score).toBe(99600)
+    expect(saved().players[1].failedTurnsInRow).toBe(0)
+    expect(saved().currentPlayerIndex).toBe(2)
+  })
+
   it.each(['cent-mille', 'dix-mille-bonus'])('ouvre les dés Bonus %s sans l’ancien avertissement de règles non tranchées', mode => {
     mountGame(new Game(['Alice', 'Bob'], { mode }))
     expect(screen.getByRole('radio', { name: 'Virtuels' }).disabled).toBe(false)

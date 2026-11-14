@@ -304,6 +304,36 @@ export class Game {
     }
   }
 
+  findPickpocketTarget() {
+    const player = this.getCurrentPlayer()
+    const amount = this.modeConfig.pickpocketAmount ?? 1000
+    let leader = null
+    for (const candidate of this.players) {
+      if (
+        candidate !== player &&
+        candidate.score >= amount &&
+        (!leader || candidate.score > leader.score)
+      )
+        leader = candidate
+    }
+    return leader
+  }
+
+  findTeleportTarget() {
+    const player = this.getCurrentPlayer()
+    let target = null
+    for (const candidate of this.players) {
+      if (
+        candidate !== player &&
+        candidate.score > player.score &&
+        candidate.score <= player.score + 3000 &&
+        (!target || candidate.score < target.score)
+      )
+        target = candidate
+    }
+    return target
+  }
+
   playCard(cardId, payload = {}) {
     if (this.winner) throw new Error('Game is already over')
     if (!this.modeConfig.jokersEnabled) {
@@ -374,22 +404,13 @@ export class Game {
 
     if (cardId === 'pickpocket') {
       const amount = this.modeConfig.pickpocketAmount ?? 1000
-      const hasValidOpponentLeader = this.players.some(
-        (p, idx) => idx !== this.currentPlayerIndex && p.score >= amount
-      )
-      if (!hasValidOpponentLeader) {
+      if (!this.findPickpocketTarget()) {
         throw new Error(`No opponent with at least ${amount} points`)
       }
     }
 
     if (cardId === 'teleporteur') {
-      const hasTarget = this.players.some(
-        (p, idx) =>
-          idx !== this.currentPlayerIndex &&
-          p.score > player.score &&
-          p.score <= player.score + 3000
-      )
-      if (!hasTarget) {
+      if (!this.findTeleportTarget()) {
         throw new Error('No player ahead within 3000 points')
       }
     }
@@ -405,8 +426,14 @@ export class Game {
         contratTarget:
           effectCardId === 'contrat' ? payload.targetScore : this.activeTurnModifiers.contratTarget,
       }
+      let projectedScore = player.score
+      if (effectCardId === 'teleporteur') {
+        projectedScore = this.findTeleportTarget()?.score ?? player.score
+      } else if (effectCardId === 'pickpocket' && this.findPickpocketTarget()) {
+        projectedScore += this.modeConfig.pickpocketAmount ?? 1000
+      }
       // En ready, ni arrêter sans lancer ni relancer après dépassement ne serait légal.
-      if (player.score + diceTurnScore(turn, modifiers) > this.targetScore)
+      if (projectedScore + diceTurnScore(turn, modifiers) > this.targetScore)
         throw new Error('Cette carte dépasserait la cible avant le lancer obligatoire.')
     }
     const previousSnapshot = this.getSnapshot()
@@ -534,16 +561,8 @@ export class Game {
         break
       case 'pickpocket': {
         const amount = this.modeConfig.pickpocketAmount ?? 1000
-        let leaderIndex = -1
-        let maxScore = -1
-        for (const [idx, p] of this.players.entries()) {
-          if (idx !== this.currentPlayerIndex && p.score >= amount && p.score > maxScore) {
-            maxScore = p.score
-            leaderIndex = idx
-          }
-        }
-        if (leaderIndex !== -1) {
-          const leader = this.players[leaderIndex]
+        const leader = this.findPickpocketTarget()
+        if (leader) {
           leader.adjustScore(-amount)
           player.adjustScore(amount)
           actionEvents.push({
@@ -556,23 +575,8 @@ export class Game {
         break
       }
       case 'teleporteur': {
-        let targetIdx = -1
-        let minGap = Infinity
-        for (const [idx, p] of this.players.entries()) {
-          if (
-            idx !== this.currentPlayerIndex &&
-            p.score > player.score &&
-            p.score <= player.score + 3000
-          ) {
-            const gap = p.score - player.score
-            if (gap < minGap) {
-              minGap = gap
-              targetIdx = idx
-            }
-          }
-        }
-        if (targetIdx !== -1) {
-          const target = this.players[targetIdx]
+        const target = this.findTeleportTarget()
+        if (target) {
           const oldPlayerScore = player.score
           const oldTargetScore = target.score
           player.adjustScore(oldTargetScore - oldPlayerScore)

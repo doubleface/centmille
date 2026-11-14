@@ -724,6 +724,183 @@ describe('cartes et dés Bonus intégrés', () => {
     expect(restored.players[1].failedTurnsInRow).toBe(0)
   })
 
+  it.each([
+    ['teleporteur', false],
+    ['teleporteur', true],
+    ['pickpocket', false],
+    ['pickpocket', true],
+  ])('R10 : %s copié=%s refuse atomiquement le score personnel projeté, reload et vrai lancer', (card, copied) => {
+    const game = new Game(['Alice', 'Bob', 'Charlie'], {
+      mode: 'cent-mille',
+      redZoneEnabled: card === 'teleporteur',
+      rng: () => 0.99,
+    })
+    if (copied) game.players[0].validateTurn(98500)
+    game.players[1].validateTurn(copied ? 97500 : 98500)
+    game.players[2].validateTurn(99500)
+    game.players[1].hand = copied ? ['aspirateur', card, 'echo'] : ['aspirateur', card]
+    game.setDiceMode('virtual')
+    roll(game, [1, 1, 1, 2, 3])
+    roll(game, [2, 3])
+    game.rng = () => 0.99
+    game.finishDiceTurn()
+    game.playCard('aspirateur')
+    if (copied) game.playCard(card)
+    const before = game.getSnapshot()
+    const undoCount = game.undoStack.length
+    expect(() => game.playCard(copied ? 'echo' : card)).toThrow(/carte.*dépasserait/)
+    expect(game.getSnapshot()).toEqual(before)
+    expect(game.undoStack).toHaveLength(undoCount)
+    const restored = reload(game)
+    expect(restored.getSnapshot()).toEqual({ ...before, canUndoDiceCard: false })
+    expect(restored.players[1].hand).toContain(copied ? 'echo' : card)
+    expect(() => restored.finishDiceTurn()).toThrow(/Lancez/)
+    roll(restored, [1, 2])
+    expect(restored.diceTurn.total).toBe(1100)
+    restored.rng = () => 0.99
+    restored.finishDiceTurn()
+    expect(restored.players[1].score).toBe(99600)
+    expect(restored.players[1].failedTurnsInRow).toBe(0)
+    expect(restored.currentPlayerIndex).toBe(2)
+  })
+
+  it.each([
+    ['teleporteur', false, 97500, 0, 98500, [0, 98500, 97500], 99600],
+    ['teleporteur', true, 96000, 97000, 98500, [96000, 98500, 97000], 99600],
+    ['pickpocket', false, 97500, 0, 99500, [0, 98500, 98500], 99600],
+    ['pickpocket', true, 96000, 97000, 99500, [97000, 98000, 97500], 99100],
+  ])('R10 légal : %s copié=%s conserve les transferts réels, lancer obligatoire et Undo', (card, copied, bob, alice, charlie, scores, finalScore) => {
+    const game = new Game(['Alice', 'Bob', 'Charlie'], {
+      mode: 'cent-mille',
+      redZoneEnabled: card === 'teleporteur',
+      rng: () => 0.99,
+    })
+    if (alice) game.players[0].validateTurn(alice)
+    game.players[1].validateTurn(bob)
+    game.players[2].validateTurn(charlie)
+    game.players[1].hand = copied ? ['aspirateur', card, 'echo'] : ['aspirateur', card]
+    game.setDiceMode('virtual')
+    roll(game, [1, 1, 1, 2, 3])
+    roll(game, [2, 3])
+    game.rng = () => 0.99
+    game.finishDiceTurn()
+    game.playCard('aspirateur')
+    if (copied) game.playCard(card)
+    const before = game.getSnapshot()
+    game.playCard(copied ? 'echo' : card)
+    expect(game.players.map((player) => player.score)).toEqual(scores)
+    expect(game.diceTurn.total).toBe(1000)
+    expect(game.diceTurn.phase).toBe('ready')
+    expect(game.players[1].hand).toEqual([])
+    const accepted = game.getSnapshot()
+    expect(game.undoLastEvent()).toEqual(before)
+    game.playCard(copied ? 'echo' : card)
+    expect(game.getSnapshot()).toEqual(accepted)
+    const restored = reload(game)
+    expect(restored.getSnapshot()).toEqual({ ...accepted, canUndoDiceCard: false })
+    expect(() => restored.finishDiceTurn()).toThrow(/Lancez/)
+    roll(restored, [1, 2])
+    restored.rng = () => 0.99
+    restored.finishDiceTurn()
+    expect(restored.players[1].score).toBe(finalScore)
+    expect(restored.currentPlayerIndex).toBe(2)
+  })
+
+  it('R10 : Téléporteur à cible exacte reste permis sans supprimer le lancer obligatoire', () => {
+    const game = new Game(['Alice', 'Bob', 'Charlie'], { mode: 'cent-mille', rng: () => 0.99 })
+    game.players[1].validateTurn(98000)
+    game.players[2].validateTurn(99000)
+    game.players[1].hand = ['aspirateur', 'teleporteur']
+    game.setDiceMode('virtual')
+    roll(game, [1, 1, 1, 2, 3])
+    roll(game, [2, 3])
+    game.rng = () => 0.99
+    game.finishDiceTurn()
+    game.playCard('aspirateur')
+    game.playCard('teleporteur')
+    const restored = reload(game)
+    expect(restored.players.map((player) => player.score)).toEqual([0, 99000, 98000])
+    expect(restored.diceTurn.total).toBe(1000)
+    expect(restored.winner).toBeNull()
+    expect(() => restored.finishDiceTurn()).toThrow(/Lancez/)
+    roll(restored, [2, 3])
+    restored.rng = () => 0.99
+    restored.finishDiceTurn()
+    expect(restored.players[1].score).toBe(99000)
+    expect(restored.players[1].failedTurnsInRow).toBe(1)
+    expect(restored.currentPlayerIndex).toBe(2)
+  })
+
+  it('R10 : Écho de Téléporteur sans nouveau joueur éligible reste un effet nul légal', () => {
+    const game = new Game(['Alice', 'Bob', 'Charlie'], { mode: 'cent-mille', rng: () => 0.99 })
+    game.players[1].validateTurn(97500)
+    game.players[2].validateTurn(98500)
+    game.players[1].hand = ['aspirateur', 'teleporteur', 'echo']
+    game.setDiceMode('virtual')
+    roll(game, [1, 1, 1, 2, 3])
+    roll(game, [2, 3])
+    game.rng = () => 0.99
+    game.finishDiceTurn()
+    game.playCard('aspirateur')
+    game.playCard('teleporteur')
+    game.playCard('echo')
+    expect(game.players.map((player) => player.score)).toEqual([0, 98500, 97500])
+    expect(game.players[1].hand).toEqual([])
+    const restored = reload(game)
+    roll(restored, [1, 2])
+    restored.rng = () => 0.99
+    restored.finishDiceTurn()
+    expect(restored.players[1].score).toBe(99600)
+  })
+
+  it('R10 : Main Faible réfléchie et sa copie peuvent diminuer le score personnel en ready', () => {
+    const game = new Game(['Alice', 'Bob', 'Charlie'], {
+      mode: 'cent-mille',
+      redZoneEnabled: false,
+      rng: () => 0.99,
+    })
+    game.players[1].validateTurn(98500)
+    game.players[2].validateTurn(99500)
+    game.players[1].hand = ['aspirateur', 'main-faible', 'echo']
+    game.players[2].hand = ['boomerang', 'boomerang']
+    game.setDiceMode('virtual')
+    roll(game, [1, 1, 1, 2, 3])
+    roll(game, [2, 3])
+    game.rng = () => 0.99
+    game.finishDiceTurn()
+    game.playCard('aspirateur')
+    for (const card of ['main-faible', 'echo']) {
+      game.playCard(card, { targetIndex: 2, refuseGage: true })
+    }
+    expect(game.players.map((player) => player.score)).toEqual([0, 97500, 99500])
+    expect(game.players[2].hand).toEqual([])
+    const restored = reload(game)
+    expect(restored.diceTurn.total).toBe(1000)
+    expect(() => restored.finishDiceTurn()).toThrow(/Lancez/)
+    roll(restored, [1, 2])
+    restored.rng = () => 0.99
+    restored.finishDiceTurn()
+    expect(restored.players[1].score).toBe(98600)
+  })
+
+  it('R10 : montant Pickpocket historique et Écho sans victime restent cohérents avec l’effet réel', () => {
+    const game = new Game(['Alice', 'Bob', 'Charlie'], { mode: 'cent-mille', rng: () => 0.99 })
+    game.players[1].validateTurn(1000)
+    game.players[0].hand = ['pickpocket', 'echo']
+    game.setDiceMode('virtual')
+    delete game.modeConfig.pickpocketAmount
+    game.playCard('pickpocket')
+    game.playCard('echo')
+    expect(game.players.map((player) => player.score)).toEqual([1000, 0, 0])
+    expect(game.players[0].hand).toEqual([])
+    const restored = reload(game)
+    expect(() => restored.finishDiceTurn()).toThrow(/Lancez/)
+    roll(restored, [1, 1, 1, 2, 3])
+    restored.rng = () => 0.99
+    restored.finishDiceTurn()
+    expect(restored.players[0].score).toBe(2000)
+  })
+
   it('bloque le hasard tant qu’une vraie distribution de carte attend un choix', () => {
     const game = makeGame()
     game.players[0].hand = ['reset', 'cameleon']
