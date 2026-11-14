@@ -34,6 +34,7 @@ export function PlayerHand({
   activeTurnModifiers = {},
   onPlayCard,
   disabled = false,
+  diceTurn = null,
   mode = 'cent-mille',
   modeConfig = null,
 }) {
@@ -41,6 +42,9 @@ export function PlayerHand({
   const [targetIndex, setTargetIndex] = useState(null)
   const [refuseGage, setRefuseGage] = useState(false)
   const [contratScore, setContratScore] = useState('500')
+  const [dieIndex, setDieIndex] = useState(null)
+  const [newFace, setNewFace] = useState(1)
+  const [aimantFace, setAimantFace] = useState(1)
 
   const config = modeConfig ?? resolveGameMode({ mode })
   const pickpocketAmount = config?.pickpocketAmount ?? 1000
@@ -86,13 +90,17 @@ export function PlayerHand({
       const card = findCard(cardId)
       activeModifiersList.push({
         id: `decl-${cardId}`,
-        label: card?.name ?? cardId,
+        label: cardId === 'aimant' && activeTurnModifiers.aimantFace ? `${card.name} (${activeTurnModifiers.aimantFace})` : (card?.name ?? cardId),
       })
     }
   }
 
   const selectedCardId = selectedIndex !== null ? hand[selectedIndex] : null
   const selectedCard = selectedCardId ? findCard(selectedCardId) : null
+  const diceCardId = selectedCardId === 'echo' ? lastPlayedCardId : selectedCardId
+  const needsDie = diceTurn && ['convertisseur', 'cameleon'].includes(diceCardId)
+  const eligibleDice = needsDie ? diceTurn.lastRollIndices.filter((index) => diceCardId === 'cameleon' || !diceTurn.dice[index].kept) : []
+  const effectiveDieIndex = eligibleDice.includes(dieIndex) ? dieIndex : eligibleDice[0]
 
   const handleCardClick = (index) => {
     if (selectedIndex === index) {
@@ -107,6 +115,7 @@ export function PlayerHand({
   const isPlayDisabled = () => {
     if (!selectedCard) return true
     if (disabled) return true
+    if (needsDie && eligibleDice.length === 0) return true
     if (
       redZoneEnabled &&
       (player?.score ?? 0) >= redZoneThreshold &&
@@ -134,7 +143,7 @@ export function PlayerHand({
     ) {
       return true
     }
-    if (selectedCard.id === 'contrat') {
+    if (diceCardId === 'contrat') {
       const parsed = Number(contratScore)
       if (!Number.isInteger(parsed) || parsed < 300 || parsed % 100 !== 0) {
         return true
@@ -151,10 +160,14 @@ export function PlayerHand({
         targetIndex: effectiveTargetIndex,
         refuseGage,
       })
-    } else if (selectedCard.id === 'contrat') {
-      onPlayCard?.('contrat', {
+    } else if (diceCardId === 'contrat') {
+      onPlayCard?.(selectedCard.id, {
         targetScore: Number(contratScore),
       })
+    } else if (diceCardId === 'aimant') {
+      onPlayCard?.(selectedCard.id, { face: aimantFace })
+    } else if (needsDie) {
+      onPlayCard?.(selectedCard.id, { dieIndex: effectiveDieIndex, face: newFace })
     } else {
       onPlayCard?.(selectedCard.id, {})
     }
@@ -247,6 +260,31 @@ export function PlayerHand({
             {getCardDescriptions(selectedCard, config).fullDescription}
           </p>
 
+          {diceCardId === 'aimant' ? (
+            <div className="card-action-panel__controls">
+              <label htmlFor="aimant-face">Valeur regroupée par main</label>
+              <select id="aimant-face" value={aimantFace} onChange={(event) => setAimantFace(Number(event.target.value))}>
+                <option value={1}>Les 1</option>
+                <option value={5}>Les 5</option>
+              </select>
+            </div>
+          ) : null}
+
+          {needsDie ? (
+            <div className="card-action-panel__controls">
+              <label htmlFor="dice-card-die">Dé du dernier lancer</label>
+              <select id="dice-card-die" value={effectiveDieIndex ?? ''} onChange={(event) => setDieIndex(Number(event.target.value))}>
+                {eligibleDice.map((index) => <option key={index} value={index}>Dé {index + 1} : {diceTurn.dice[index].face}</option>)}
+              </select>
+              {diceCardId === 'cameleon' ? <>
+                <label htmlFor="dice-card-face">Nouvelle face</label>
+                <select id="dice-card-face" value={newFace} onChange={(event) => setNewFace(Number(event.target.value))}>
+                  {[1, 2, 3, 4, 5, 6].map((face) => <option key={face} value={face}>{face}</option>)}
+                </select>
+              </> : null}
+            </div>
+          ) : null}
+
           {selectedCard.activation === 'passive-prompt' && (
             <div
               className="card-action-panel__note"
@@ -302,7 +340,7 @@ export function PlayerHand({
             </div>
           )}
 
-          {selectedCard.id === 'contrat' && (
+          {diceCardId === 'contrat' && (
             <div className="card-action-panel__controls">
               <label
                 htmlFor="contrat-target-score"
@@ -334,7 +372,7 @@ export function PlayerHand({
 
           {selectedCard.activation !== 'passive-prompt' &&
             selectedCard.activation !== 'instant-target' &&
-            selectedCard.id !== 'contrat' && (
+            diceCardId !== 'contrat' && (
               <div className="card-action-panel__controls">
                 <button
                   type="button"

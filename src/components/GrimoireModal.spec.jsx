@@ -71,7 +71,7 @@ describe('GrimoireModal', () => {
     // Discovered event
     expect(screen.getByText('🍹 Happy Hour')).toBeTruthy()
     expect(
-      screen.getByText('Les 5 valent 100 pts pendant ce tour de table !')
+      screen.getByText('Les 5 isolés valent 100 pts pendant ce tour de table ; groupes et suites gardent leur barème normal.')
     ).toBeTruthy()
 
     // Discovered achievement

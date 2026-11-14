@@ -5,7 +5,8 @@ export const TABLE_EVENTS = Object.freeze([
     emoji: '🍹',
     type: 'declarative',
     soundId: 'table-event',
-    description: 'Les 5 valent 100 pts pendant ce tour de table !',
+    description:
+      'Les 5 isolés valent 100 pts pendant ce tour de table ; groupes et suites gardent leur barème normal.',
   },
   {
     id: 'tempete',
@@ -21,7 +22,8 @@ export const TABLE_EVENTS = Object.freeze([
     emoji: '🎉',
     type: 'declarative',
     soundId: 'table-event',
-    description: 'Un brelan de 2 vaut 2 000 pts pendant ce tour de table !',
+    description:
+      'Les groupes de 2 valent 2 000 / 4 000 / 8 000 / 16 000 pts pour 3 / 4 / 5 / 6 dés pendant ce tour de table.',
   },
   {
     id: 'treve',
@@ -61,7 +63,8 @@ export const TABLE_EVENTS = Object.freeze([
     emoji: '⚡',
     type: 'declarative',
     soundId: 'table-event',
-    description: 'Les 1 valent 200 pts pendant ce tour de table !',
+    description:
+      'Les 1 isolés valent 200 pts pendant ce tour de table ; groupes et suites gardent leur barème normal.',
   },
 ])
 

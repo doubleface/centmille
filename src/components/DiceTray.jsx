@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import { diceStopReason, diceToRoll, newDiceTurn, scoreDice } from '../game/DiceTurn.js'
+import { diceStopReason, diceToRoll, diceTurnScore, newDiceTurn } from '../game/DiceTurn.js'
 
 const PIP_POSITIONS = {
   1: [[20, 20]],
@@ -16,26 +16,34 @@ export const DiceTray = ({
   player,
   openingScore,
   targetScore,
+  activeTurnModifiers = {},
   onRoll,
   onFinish,
   isLocked,
   errorMessage,
 }) => {
-  const overshoots = player.score + turn.total > targetScore
+  const effectiveScore = diceTurnScore(turn, activeTurnModifiers)
+  const cardFailure = turn.phase === 'playing' && (
+    activeTurnModifiers.contratTarget != null && turn.total !== activeTurnModifiers.contratTarget
+      ? `Contrat : le cumul doit atteindre exactement ${activeTurnModifiers.contratTarget} points.`
+      : activeTurnModifiers.toutOuRien && turn.total < 1000
+        ? 'Tout ou Rien : il faut au moins 1000 points, sinon deux bâtons.'
+        : null
+  )
+  const overshoots = player.score + effectiveScore > targetScore
   const actionRef = useRef(null)
   // Garder un point d’entrée clavier quand la relance cède la place à la confirmation.
   useEffect(() => {
     if (!isLocked) actionRef.current?.focus()
   }, [player.name, turn.phase, isLocked, overshoots])
 
-  const offer = carry ? newDiceTurn(carry) : null
-  const inherited = newDiceTurn(turn.inheritedRolls).total
+  const offer = carry ? newDiceTurn(carry, turn.diceCount) : null
+  const inherited = turn.inheritedTotal
   const remaining = diceToRoll(turn)
   const full = turn.dice.every((die) => die.kept)
   const bust = turn.phase === 'bust'
-  const lastFaces = turn.rolls.at(-1)
-  const result = lastFaces ? scoreDice(lastFaces) : null
-  const reason = diceStopReason(turn, player, openingScore)
+  const result = turn.lastResult
+  const reason = diceStopReason(turn, player, openingScore, activeTurnModifiers)
 
   return (
     <section className="turn dice-tray" aria-label="Plateau de dés virtuels">
@@ -69,6 +77,8 @@ export const DiceTray = ({
           <span>Gain du lancer <strong>{result?.points ?? 0}</strong></span>
           <span>Cumul du tour <strong>{turn.total}</strong>{inherited ? <small>dont {inherited} repris</small> : null}</span>
         </div>
+        {effectiveScore !== turn.total && !cardFailure ? <p>Score après cartes : <strong>{effectiveScore}</strong> pts</p> : null}
+        {cardFailure && !overshoots ? <p>Arrêter maintenant entraîne l’échec. {cardFailure}</p> : null}
         {result ? (
           <p className="dice-tray__hint">
             {bust
@@ -76,7 +86,7 @@ export const DiceTray = ({
               : result.groups.map((group) => `${group.label} : ${group.points}`).join(' · ')}
           </p>
         ) : null}
-        {full && !bust && !overshoots ? <p>Main pleine : relancez les 5 dés, cumul conservé.</p> : null}
+        {full && !bust && !overshoots ? <p>Main pleine : relancez les {turn.diceCount} dés, cumul conservé.</p> : null}
         {overshoots ? <p>Cible de {targetScore} dépassée : relance impossible. Confirmez l’échec pour passer au joueur suivant.</p> : null}
         {!bust && !overshoots && reason ? <p id="dice-stop-reason" className="dice-tray__hint">{reason}</p> : null}
       </div>
@@ -91,7 +101,7 @@ export const DiceTray = ({
         {!bust && !overshoots ? (
           <>
             <button ref={actionRef} type="button" className="btn btn--primary" onClick={() => onRoll()} disabled={isLocked}>
-              {turn.phase === 'ready' ? 'Lancer les 5 dés' : `Continuer · ${remaining} dé${remaining > 1 ? 's' : ''}`}
+              {turn.phase === 'ready' ? `Lancer ${remaining > 1 ? 'les' : 'le'} ${remaining} dé${remaining > 1 ? 's' : ''}` : `Continuer · ${remaining} dé${remaining > 1 ? 's' : ''}`}
             </button>
             <button
               type="button"
@@ -100,7 +110,7 @@ export const DiceTray = ({
               disabled={isLocked || Boolean(reason)}
               aria-describedby={reason ? 'dice-stop-reason' : undefined}
             >
-              Arrêter et marquer
+              {cardFailure ? 'Confirmer l’échec (carte)' : 'Arrêter et marquer'}
             </button>
           </>
         ) : (

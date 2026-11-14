@@ -42,6 +42,21 @@ describe('TurnRules', () => {
     expect(rules.applyRounding(250, null)).toBe(250)
   })
 
+  it.each([
+    [250, {}, 250],
+    [250, { arrondi: true }, 300],
+    [250, { arrondi: true, doubleur: true }, 600],
+    [500, { contratTarget: 500 }, 1000],
+    [1000, { toutOuRien: true }, 3000],
+    [1050, { arrondi: true, contratTarget: 1050, doubleur: true, toutOuRien: true }, 13200],
+    [500, { contratTarget: null }, 500],
+  ])('projette %i avec %j vers %i sans modifier le cumul brut', (raw, modifiers, expected) => {
+    const before = { ...modifiers }
+    expect(rules.computeScore(raw, modifiers)).toBe(expected)
+    expect(modifiers).toEqual(before)
+    expect(rules.computeScore(raw)).toBe(raw)
+  })
+
   it('allows opening from 500 points with default settings', () => {
     expect(rules.canOpen(500)).toBe(true)
     expect(rules.canOpen(450)).toBe(false)

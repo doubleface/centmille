@@ -77,7 +77,7 @@ export const CARDS = Object.freeze([
     image: '/cards/aspirateur.jpg',
     shortDescription: 'Avant le 1er lancer : reprend les points et dés du joueur qui a échoué.',
     fullDescription:
-      '⏱️ À annoncer AVANT votre 1er lancer (uniquement si le joueur précédent vient de faire chou blanc) : vous récupérez les points qu’il avait accumulés et continuez le tour avec ses dés restants.',
+      '⏱️ À annoncer AVANT votre 1er lancer (uniquement si le joueur précédent vient de faire chou blanc) : vous récupérez son cumul avant broucouille et les dés du lancer échoué. Adaptez les réserves à votre propre main de 5 dés (6 avec Sixième Sens) ; une main remplie est relancée entièrement. Vous devez lancer au moins une fois avant de pouvoir vous arrêter.',
     inDeck: true,
   },
   {
@@ -120,9 +120,9 @@ export const CARDS = Object.freeze([
     isOffensive: false,
     soundId: 'rarity-common',
     image: '/cards/reset.jpg',
-    shortDescription: 'Pendant le tour : reprenez les 5 dés en gardant vos points du tour.',
+    shortDescription: 'Pendant le tour : reprenez tous vos dés en gardant vos points du tour.',
     fullDescription:
-      '🎲 Pendant votre tour, entre deux lancers : accorde une main pleine gratuite. Vous reprenez et relancez les 5 dés tout en conservant les points accumulés plus tôt dans le tour.',
+      '🎲 Pendant votre tour, entre deux lancers : accorde une main pleine gratuite. Vous reprenez les 5 dés (6 avec Sixième Sens) tout en conservant les points accumulés plus tôt dans le tour, puis choisissez de relancer.',
     inDeck: true,
   },
   {
@@ -137,7 +137,7 @@ export const CARDS = Object.freeze([
     image: '/cards/convertisseur.jpg',
     shortDescription: 'En voyant vos dés : transforme un dé non-marquant (2, 3, 4, 6) en 5.',
     fullDescription:
-      '🎲 En voyant vos dés après un lancer : retournez un dé non-marquant (valeur 2, 3, 4 ou 6) pour en faire un 5 (50 points) et continuer ou sauver votre tour.',
+      '🎲 En voyant vos dés après un lancer : retournez un dé non-marquant (valeur 2, 3, 4 ou 6) pour en faire un 5. Recalculez le dernier lancer entier pour continuer ou sauver votre tour, sans toucher aux réserves des lancers précédents.',
     inDeck: true,
   },
   {
@@ -152,7 +152,7 @@ export const CARDS = Object.freeze([
     image: '/cards/cameleon.jpg',
     shortDescription: 'En voyant vos dés : changez la face d’un dé en n’importe quelle valeur.',
     fullDescription:
-      '🎲 En voyant vos dés après un lancer : choisissez un de vos dés sur la table et tournez-le sur la valeur de votre choix (1 à 6) pour compléter un brelan, un carré ou une quinte.',
+      '🎲 En voyant vos dés après un lancer : changez un dé du dernier lancer en la valeur de votre choix (1 à 6), même s’il vient d’être gardé automatiquement. Recalculez ce lancer entier, sans toucher aux réserves des lancers précédents.',
     inDeck: true,
   },
   {
@@ -167,7 +167,7 @@ export const CARDS = Object.freeze([
     image: '/cards/petite-suite.jpg',
     shortDescription: 'En voyant vos dés : une suite de 4 dés sur la table vaut 1 000 pts.',
     fullDescription:
-      '🎲 En voyant vos dés après un lancer : si 4 de vos dés forment une suite consécutive (1-2-3-4, 2-3-4-5 ou 3-4-5-6), elle rapporte 1 000 points ! Le 5e dé peut marquer ou être relancé.',
+      '🎲 En voyant vos dés après un lancer : si 4 dés du dernier lancer forment une suite consécutive (1-2-3-4, 2-3-4-5 ou 3-4-5-6), elle rapporte 1 000 points ! Recalculez ce lancer entier, y compris les dés juste gardés, sans toucher aux anciennes réserves. Les autres dés peuvent marquer ou être relancés.',
     inDeck: true,
   },
   {
@@ -182,7 +182,7 @@ export const CARDS = Object.freeze([
     image: '/cards/aimant.jpg',
     shortDescription: 'Avant le 1er lancer : cumulez vos 1 ou vos 5 sur plusieurs lancers.',
     fullDescription:
-      '⏱️ À annoncer AVANT votre 1er lancer : choisissez les 1 ou les 5. Les dés de cette valeur mis de côté au fil de vos lancers successifs se cumulent pour former un brelan, carré ou quinte.',
+      '⏱️ À annoncer AVANT votre 1er lancer : choisissez les 1 ou les 5. Regroupez cette valeur entre les lancers d’une même main pour former brelan, carré, quinte ou six identiques, sans compter deux fois les points déjà acquis. À main pleine ou après Reset, le regroupement repart à zéro ; le cumul reste conservé.',
     inDeck: true,
   },
   {

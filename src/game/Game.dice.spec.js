@@ -180,11 +180,50 @@ describe('dés intégrés au vrai Game', () => {
     expect(restored.undoLastEvent().diceTurn).toEqual(before.diceTurn)
   })
 
-  it('ne prétend pas appliquer les cartes non encore prises en charge', () => {
-    for (const mode of ['cent-mille', 'dix-mille-bonus']) {
-      const game = new Game(['Alice', 'Bob'], { mode })
-      expect(() => game.setDiceMode('virtual')).toThrow(/règles de cartes/)
-      expect(game.diceMode).toBe('physical')
-    }
+  it('sauve le montant validé de la reprise et continue à lire les anciennes offres en tableaux', () => {
+    const game = makeGame([[5, 5, 5, 2, 3]])
+    game.rollDice()
+    game.finishDiceTurn()
+    const saved = game.getSnapshot()
+    expect(saved.diceCarry).toMatchObject({ total: 500, diceCount: 5, rolls: [[5, 5, 5, 2, 3]] })
+    saved.diceCarry.total = 1000
+    const restored = Game.fromSnapshot(JSON.parse(JSON.stringify(saved)))
+    saved.diceCarry.total = 9000
+    expect(restored.diceCarry.total).toBe(1000)
+    restored.rng = () => (1 - 0.5) / 6
+    restored.rollDice({ takeOver: true })
+    expect(restored.diceTurn.total).toBe(1200)
+    expect(Game.fromSnapshot(restored.getSnapshot()).diceTurn.total).toBe(1200)
+    const legacy = game.getSnapshot()
+    legacy.diceCarry = legacy.diceCarry.rolls
+    const old = Game.fromSnapshot(legacy)
+    old.rng = () => (1 - 0.5) / 6
+    old.rollDice({ takeOver: true })
+    expect(old.diceTurn.total).toBe(700)
+  })
+
+  it('adapte une reprise6 à la capacité5 du nouveau joueur et lance obligatoirement', () => {
+    const game = makeGame([[1, 2, 2, 3, 6]])
+    game.diceCarry = { rolls: [[1, 2, 3, 4, 5, 6]], total: 1600, diceCount: 6 }
+    game.rollDice({ takeOver: true })
+    expect(game.diceTurn.diceCount).toBe(5)
+    expect(game.diceTurn.rolls).toEqual([[1, 2, 2, 3, 6]])
+    expect(game.diceTurn.total).toBe(1700)
+    expect(game.diceTurn.inheritedTotal).toBe(1600)
+  })
+
+  it.each([
+    'cent-mille',
+    'dix-mille-bonus',
+  ])('ouvre %s avec le choix Aimant réel et un événement', (mode) => {
+    const game = new Game(['Alice', 'Bob'], { mode, rng: () => 0 })
+    game.setDiceMode('virtual')
+    game.players[0].hand = ['aimant']
+    game.playCard('aimant', { face: 1 })
+    game.activeTableEvent = { id: 'tour-eclair', remainingTurns: 2 }
+    game.rollDice()
+    expect(game.diceTurn.total).toBe(4000)
+    expect(game.activeTurnModifiers.aimantFace).toBe(1)
+    expect(Game.fromSnapshot(game.getSnapshot()).diceTurn).toEqual(game.diceTurn)
   })
 })

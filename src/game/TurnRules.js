@@ -29,6 +29,14 @@ export class TurnRules {
     return turnScore
   }
 
+  computeScore(turnScore, modifiers = {}) {
+    let score = this.applyRounding(turnScore, { roundUpTo100: modifiers.arrondi })
+    if (modifiers.contratTarget !== null && modifiers.contratTarget !== undefined) score *= 2
+    if (modifiers.doubleur) score *= 2
+    if (modifiers.toutOuRien) score *= 3
+    return score
+  }
+
   canOpen(turnScore) {
     return turnScore >= this.openingScore
   }

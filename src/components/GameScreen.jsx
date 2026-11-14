@@ -41,6 +41,7 @@ export const GameScreen = ({
   onRollDice = null,
   onFinishDiceTurn = null,
   diceLocked = false,
+  canUndoDiceCard = false,
 }) => {
   return (
     <section className="sheet-screen">
@@ -116,12 +117,11 @@ export const GameScreen = ({
             Physiques
           </label>
           <label>
-            <input type="radio" name="dice-mode" value="virtual" checked={diceMode === 'virtual'} disabled={isBonusMode(mode)} onChange={() => onSetDiceMode('virtual')} />
+            <input type="radio" name="dice-mode" value="virtual" checked={diceMode === 'virtual'} onChange={() => onSetDiceMode('virtual')} />
             Virtuels
           </label>
           {diceCarry ? <p>Passer aux dés physiques abandonne la reprise proposée.</p> : null}
-          {isBonusMode(mode) ? <p>Dés virtuels Bonus en préparation : règles des cartes à compléter.</p> : null}
-          {diceTurn && diceTurn.phase !== 'ready' ? <p>Choix des dés et annulation bloqués pendant le tour.</p> : null}
+          {diceTurn && diceTurn.phase !== 'ready' ? <p>Choix des dés bloqué pendant le tour. Annulation possible uniquement pour la dernière carte, avant toute relance.</p> : null}
         </fieldset>
       ) : null}
 
@@ -132,6 +132,7 @@ export const GameScreen = ({
           player={currentPlayer}
           openingScore={openingScore}
           targetScore={targetScore}
+          activeTurnModifiers={activeTurnModifiers}
           onRoll={onRollDice}
           onFinish={onFinishDiceTurn}
           isLocked={diceLocked || Boolean(collisionReview)}
@@ -164,7 +165,8 @@ export const GameScreen = ({
           redZoneEnabled={redZoneEnabled}
           activeTurnModifiers={activeTurnModifiers}
           onPlayCard={onPlayCard}
-          disabled={Boolean(collisionReview)}
+          disabled={Boolean(collisionReview) || (diceMode === 'virtual' && diceLocked)}
+          diceTurn={diceMode === 'virtual' ? diceTurn : null}
           mode={mode}
         />
       ) : null}
@@ -182,7 +184,7 @@ export const GameScreen = ({
       ) : null}
 
       <CornerMenu
-        canUndo={!diceTurn || (diceTurn.phase === 'ready' && !collisionReview)}
+        canUndo={!collisionReview && (!diceTurn || diceTurn.phase === 'ready' || canUndoDiceCard)}
         onUndo={onUndo}
         onResetGame={onResetGame}
         hasGrimoire={isBonusMode(mode)}

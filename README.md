@@ -1,6 +1,6 @@
 # centmille
 
-Feuille de marque mobile pour le jeu des **10 000** (dés réels, score numérique).
+Feuille de marque mobile pour les jeux des **10 000** et **100 000**, avec dés physiques ou dés virtuels optionnels.
 
 L'application reproduit fidèlement la feuille de score papier (colonnes des joueurs, scores successifs, barrement des scores rétrogradés, bâtons d'échecs `|`, `||`, `|||`) tout en automatisant les règles :
 - Rétrogradation au palier précédent après 3 échecs consécutifs
@@ -14,6 +14,18 @@ L'application reproduit fidèlement la feuille de score papier (colonnes des jou
 - **⚡ Partie rapide (10 000)** : Règles traditionnelles du 10 000, sans bonus ni cartes.
 - **🎁 Dix Mille Bonus (10 000)** : Format court avec un concentré de bonus (deck de 17 cartes, main limitée à 2 cartes, palier unique à 5 000, nombres magiques, événements de table et succès, sans boutique ni prime). Voir les [règles complètes du mode Dix Mille Bonus](docs/dix-mille-bonus.md).
 - **👑 Cent Mille (100 000)** : Soirée complète avec 37 cartes jokers, boutique aux 4 paliers (20k, 40k, 60k, 80k), prime de la couronne, zone rouge avec cartes sabotage, événements périodiques et Grimoire de collection.
+
+## Dés physiques ou virtuels
+
+Les dés physiques et la saisie du score restent le mode par défaut. Le choix **Virtuels** ouvre un plateau compact dans les trois variantes : tous les dés marquants sont gardés automatiquement, les autres peuvent être relancés. Une main pleine permet de relancer tous les dés en conservant le cumul.
+
+- Pour arrêter : ouverture à 500 points minimum et cumul multiple de 100 (exception Arrondi). Un dépassement bloque toute relance ; sa sanction attend la confirmation explicite de l’échec.
+- Une reprise conserve le montant effectivement validé, exige un nouveau lancer et adapte la réserve à la capacité du nouveau joueur. Ses modificateurs s’appliquent ensuite à tout le cumul.
+- Sixième Sens donne 6 dés pendant le tour ; Reset conserve le cumul et remet 5 ou 6 dés en jeu. Caméléon/Petite Suite recalculent le dernier lancer entier ; Convertisseur ne vise qu’un dé non marquant. La Seconde Chance rejoue les dés du lancer échoué.
+- En Cent Mille, Aimant choisit les 1 ou les 5 avant le premier lancer et les regroupe **par main**, sans double comptage. Main pleine ou Reset remet le regroupement à zéro, sans perdre le cumul. Aspirateur reprend le cumul avant broucouille et sa réserve, avec un lancer obligatoire.
+- Happy Hour et Tour éclair changent seulement les 5/1 isolés ; groupes et suites gardent leur barème. Fête des 2 donne 2 000/4 000/8 000/16 000 points pour 3/4/5/6 dés identiques.
+
+Les choix, cartes, lancers et gains se restaurent après recharge. L’annulation d’une validation restitue le tour de dés ; une carte est annulable avant tout nouveau lancer. Les autres mécanismes (boutique, collisions, réactions, événements, sanctions) restent ceux de la variante choisie. Le retour aux dés physiques est possible avant le premier lancer d’un tour ; un ancien Aimant physique sans valeur enregistrée doit d’abord terminer son tour.
 
 ## Stack
 

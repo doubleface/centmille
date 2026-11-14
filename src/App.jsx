@@ -425,6 +425,7 @@ export const App = () => {
           diceMode={snapshot?.diceMode ?? 'physical'}
           diceTurn={snapshot?.diceTurn ?? null}
           diceCarry={snapshot?.diceCarry ?? null}
+          canUndoDiceCard={Boolean(snapshot?.canUndoDiceCard)}
           openingScore={snapshot?.openingScore ?? 500}
           targetScore={snapshot?.targetScore ?? 10000}
           onSetDiceMode={setDiceMode ? (value) => handleDiceAction(() => setDiceMode(value)) : null}

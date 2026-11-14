@@ -43,23 +43,23 @@ Le deck est réduit à une sélection dynamique de **17 cartes** équilibrées p
 ### Communes (7 cartes)
 1. **🔼 L'Arrondi :** autorise exceptionnellement à valider un score non-multiple de 100 (arrondi à la centaine supérieure).
 2. **🔄 Le Convertisseur :** permet de convertir un dé non-marquant (2, 3, 4, 6) en 5 (50 points).
-3. **⏮️ Le Reset :** permet de relancer tous ses dés une fois lors du tour.
+3. **⏮️ Le Reset :** remet tous les dés en jeu sans perdre le cumul : 6 avec Sixième Sens actif, 5 sinon.
 4. **🧽 L'Effaceur :** efface immédiatement tous ses bâtons d'échec accumulés.
 5. **☂️ L'Assurance :** sauve la moitié de ses points en cas de broucouille lors du tour.
-6. **📏 La Petite Suite :** une suite de 4 dés (1-2-3-4, 2-3-4-5, 3-4-5-6) rapporte 1 000 points.
+6. **📏 La Petite Suite :** une suite de 4 dés (1-2-3-4, 2-3-4-5, 3-4-5-6) rapporte 1 000 points. Recalcule le dernier lancer entier, y compris ses dés tout juste gardés, jamais les réserves antérieures.
 7. **🎤 L'Annonceur :** gage obligeant la cible à commenter son tour comme un commentateur sportif.
 
 ### Rares (7 cartes)
 8. **🛡️ Le Bouclier :** annule automatiquement une rétrogradation de score (défense passive).
 9. **✖️2 Le Doubleur :** double tous les points marqués lors du tour en cours.
 10. **🍀 La Seconde Chance :** permet de relancer ses dés après une broucouille pour tenter de sauver son tour.
-11. **🎲 Le Sixième Sens :** permet d'annoncer la valeur d'un dé avant de le lancer pour marquer un bonus.
+11. **🎲 Le Sixième Sens :** à annoncer avant le premier lancer : permet de jouer tout le tour avec 6 dés au lieu de 5. Une main pleine nécessite 6 dés marquants ; six dés identiques doublent la valeur d'une quinte.
 12. **🧊 Le Gel :** cible un adversaire qui passe son prochain tour sans pénalité.
 13. **🧿 La Malédiction :** la cible doit marquer au moins 500 points à son prochain tour sous peine d'échec.
 14. **🕵️ Le Pickpocket :** vole **500 points** au joueur actuellement en tête (si celui-ci possède au moins 500 points).
 
 ### Légendaires (3 cartes)
-15. **🦎 Le Caméléon :** change la face d'un dé sur la valeur de son choix.
+15. **🦎 Le Caméléon :** change la face d'un dé du dernier lancer (y compris tout juste gardé), pas d'une ancienne réserve. Recalcule le gain entier de ce lancer.
 16. **🪞 Le Miroir :** renvoie une collision ou une attaque sur l'adversaire qui l'a provoquée.
 17. **🔂 Le Bis :** rejoue immédiatement un tour complet à la fin de son tour.
 
@@ -81,9 +81,9 @@ Seuls 3 scores déclenchent un effet magique :
 Les événements de table interviennent lors du franchissement des 5 000 points ou via certains effets. **Aucun événement périodique automatique** (comme l'événement tous les 10 tours de table en Cent Mille) n'est actif.
 
 Événements autorisés (6 au total) :
-- **🍹 Happy Hour :** les 5 valent 100 points pendant le tour de table.
-- **⚡ Tour éclair :** les 1 valent 200 points pendant le tour de table.
-- **🎉 Fête des 2 :** un brelan de 2 vaut 2 000 points pendant le tour de table.
+- **🍹 Happy Hour :** les 5 isolés valent 100 points ; groupes et suites conservent leur barème normal.
+- **⚡ Tour éclair :** les 1 isolés valent 200 points ; groupes et suites conservent leur barème normal.
+- **🎉 Fête des 2 :** les groupes de 2 valent 2 000 / 4 000 / 8 000 / 16 000 points pour 3 / 4 / 5 / 6 dés identiques.
 - **🕊️ Trêve :** aucune collision ne se déclenche pendant le tour de table.
 - **🌧️ Pluie de cartes :** chaque joueur reçoit immédiatement 1 carte Commune.
 - **🔃 Sens inverse :** inverse l'ordre de passage des joueurs pour le tour de table.
