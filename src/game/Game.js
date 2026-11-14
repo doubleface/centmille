@@ -395,6 +395,20 @@ export class Game {
     }
 
     const nextDiceTurn = this.previewDiceCard(effectCardId, payload)
+    const turn = nextDiceTurn ?? this.diceTurn
+    if (this.diceMode === 'virtual' && turn.phase === 'ready') {
+      const modifiers = {
+        ...this.activeTurnModifiers,
+        arrondi: this.activeTurnModifiers.arrondi || effectCardId === 'arrondi',
+        doubleur: this.activeTurnModifiers.doubleur || effectCardId === 'doubleur',
+        toutOuRien: this.activeTurnModifiers.toutOuRien || effectCardId === 'tout-ou-rien',
+        contratTarget:
+          effectCardId === 'contrat' ? payload.targetScore : this.activeTurnModifiers.contratTarget,
+      }
+      // En ready, ni arrêter sans lancer ni relancer après dépassement ne serait légal.
+      if (player.score + diceTurnScore(turn, modifiers) > this.targetScore)
+        throw new Error('Cette carte dépasserait la cible avant le lancer obligatoire.')
+    }
     const previousSnapshot = this.getSnapshot()
     player.hand.splice(cardIndex, 1)
 

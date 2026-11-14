@@ -115,16 +115,16 @@ function inheritTurn(previous, total, diceCount, failedFaces = null) {
     throw new Error('Reprise de dés invalide.')
   const source = { ...previous }
   if (failedFaces) {
-    const dice = previous.dice.every((die) => die.kept)
-      ? emptyTurn(previous.diceCount).dice
-      : previous.dice
+    const full = previous.dice.every((die) => die.kept)
+    const dice = full ? emptyTurn(previous.diceCount).dice : previous.dice
+    if (full) source.magnetCounts = { 1: 0, 5: 0 }
     let index = 0
     source.dice = dice.map((die) => (die.kept ? die : { face: failedFaces[index++], kept: false }))
     if (index !== failedFaces.length || scoreDice(failedFaces).points !== 0)
       throw new Error('Reprise de broucouille invalide.')
   }
   return {
-    ...previous,
+    ...source,
     diceCount,
     dice: adaptDice(source, diceCount),
     phase: 'ready',

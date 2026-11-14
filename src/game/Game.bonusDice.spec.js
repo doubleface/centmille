@@ -614,6 +614,116 @@ describe('cartes et dés Bonus intégrés', () => {
     expect(game.undoLastEvent().diceTurn).toEqual(before.diceTurn)
   })
 
+  it.each([
+    [[1, 2, 2, 3, 4], 100],
+    [[1, 1, 2, 3, 4], 200],
+  ])('R9 : Aspirateur après main pleine remet Aimant à zéro pour %j, reload et Undo', (faces, gain) => {
+    const game = makeGame('cent-mille')
+    game.players[1].hand = ['aimant', 'aspirateur']
+    roll(game, [1, 1, 1, 1, 1])
+    roll(game, [2, 2, 3, 4, 6])
+    game.rng = () => 0.99
+    game.finishDiceTurn()
+    game.playCard('aimant', { face: 1 })
+    game.playCard('aspirateur')
+    const inherited = structuredClone(game.diceTurn)
+    expect(inherited.total).toBe(4000)
+    expect(inherited.magnetCounts).toEqual({ 1: 0, 5: 0 })
+    expect(diceToRoll(inherited)).toBe(5)
+    expect(reload(game).diceTurn).toEqual(inherited)
+    expect(game.undoLastEvent().diceTurn.total).toBe(0)
+    expect(game.players[1].hand).toEqual(['aspirateur'])
+    game.playCard('aspirateur')
+    const restored = reload(game)
+    roll(restored, faces)
+    expect(restored.diceTurn.lastResult.points).toBe(gain)
+    expect(restored.diceTurn.total).toBe(4000 + gain)
+    expect(restored.diceTurn.magnetCounts[1]).toBe(gain / 100)
+    const changed = structuredClone(restored.diceTurn)
+    expect(reload(restored).diceTurn).toEqual(changed)
+    restored.rng = () => 0.99
+    restored.finishDiceTurn()
+    expect(restored.players[1].score).toBe(4000 + gain)
+    expect(restored.players[0].score).toBe(0)
+    expect(restored.undoLastEvent().diceTurn).toEqual(changed)
+    expect(restored.players[1].score).toBe(0)
+    restored.finishDiceTurn()
+    expect(restored.players[1].score).toBe(4000 + gain)
+  })
+
+  it('R8 : refuse Aspirateur en dépassement avant consommation, recharge et vrai nouveau lancer', () => {
+    const game = makeGame('cent-mille')
+    game.players[1].validateTurn(99700)
+    game.players[1].hand = ['aspirateur']
+    roll(game, [1, 1, 1, 2, 3])
+    roll(game, [2, 3])
+    game.rng = () => 0.99
+    game.finishDiceTurn()
+    const before = game.getSnapshot()
+    expect(() => game.playCard('aspirateur')).toThrow(/carte.*dépasserait/)
+    expect(game.getSnapshot()).toEqual(before)
+    const restored = reload(game)
+    expect(restored.players[1].hand).toEqual(['aspirateur'])
+    expect(restored.diceTurn.total).toBe(0)
+    expect(() => restored.finishDiceTurn()).toThrow(/Lancez/)
+    roll(restored, [1, 2, 2, 3, 6])
+    restored.rng = () => 0.99
+    restored.finishDiceTurn()
+    expect(restored.players[1].score).toBe(99800)
+    expect(restored.players[1].failedTurnsInRow).toBe(0)
+  })
+
+  it('R8 : Aspirateur à la cible exacte reste permis mais exige toujours un lancer', () => {
+    const game = makeGame('cent-mille')
+    game.players[1].validateTurn(99000)
+    game.players[1].hand = ['aspirateur']
+    roll(game, [1, 1, 1, 2, 3])
+    roll(game, [2, 3])
+    game.rng = () => 0.99
+    game.finishDiceTurn()
+    game.playCard('aspirateur')
+    const restored = reload(game)
+    expect(restored.diceTurn.total).toBe(1000)
+    expect(restored.winner).toBeNull()
+    expect(() => restored.finishDiceTurn()).toThrow(/Lancez/)
+    roll(restored, [2, 3])
+    expect(restored.diceTurn.phase).toBe('bust')
+    restored.rng = () => 0.99
+    restored.finishDiceTurn()
+    expect(restored.players[1].score).toBe(99000)
+    expect(restored.players[1].failedTurnsInRow).toBe(1)
+    expect(restored.currentPlayerIndex).toBe(0)
+  })
+
+  it.each([
+    ['doubleur', 1500],
+    ['contrat', 1500],
+    ['tout-ou-rien', 2500],
+  ])('R8 : refuse %s après Aspirateur sans créer d’impasse ready, reload et lancer obligatoire', (card, margin) => {
+    const game = makeGame('cent-mille')
+    game.players[1].validateTurn(100000 - margin)
+    game.players[1].hand = ['aspirateur', card]
+    roll(game, [1, 1, 1, 2, 3])
+    roll(game, [2, 3])
+    game.rng = () => 0.99
+    game.finishDiceTurn()
+    game.playCard('aspirateur')
+    const before = game.getSnapshot()
+    expect(() => game.playCard(card, { targetScore: 1000 })).toThrow(/carte.*dépasserait/)
+    expect(game.getSnapshot()).toEqual(before)
+    const restored = reload(game)
+    expect(restored.players[1].hand).toEqual([card])
+    expect(restored.diceTurn.phase).toBe('ready')
+    expect(restored.diceTurn.total).toBe(1000)
+    expect(() => restored.finishDiceTurn()).toThrow(/Lancez/)
+    roll(restored, [1, 2])
+    expect(restored.diceTurn.total).toBe(1100)
+    restored.rng = () => 0.99
+    restored.finishDiceTurn()
+    expect(restored.players[1].score).toBe(101100 - margin)
+    expect(restored.players[1].failedTurnsInRow).toBe(0)
+  })
+
   it('bloque le hasard tant qu’une vraie distribution de carte attend un choix', () => {
     const game = makeGame()
     game.players[0].hand = ['reset', 'cameleon']

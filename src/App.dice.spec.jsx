@@ -596,6 +596,45 @@ describe('parcours App → hook → Game → stockage, sans mocks métier', () =
     expect(saved().players[1].hasOpened).toBe(true)
   })
 
+  it.each([false, true])('R8 App : refus atomique %s, reload et vraie issue virtuelle avec lancer obligatoire', multiplier => {
+    const game = new Game(['Alice', 'Bob'], { mode: 'cent-mille', rng: () => 0.99 })
+    game.players[1].validateTurn(multiplier ? 98500 : 99700)
+    game.players[1].hand = multiplier ? ['aspirateur', 'doubleur'] : ['aspirateur']
+    game.setDiceMode('virtual')
+    const values = [1, 1, 1, 2, 3, 2, 3].map(face => (face - 0.5) / 6)
+    game.rng = () => values.length ? values.shift() : 0.99
+    game.rollDice()
+    game.rollDice()
+    game.finishDiceTurn()
+    let view = mountGame(game)
+    if (multiplier) {
+      fireEvent.click(screen.getByTestId('hand-card-aspirateur-0'))
+      click('Utiliser')
+      click('Compris !')
+    }
+    const before = saved()
+    fireEvent.click(screen.getByTestId(`hand-card-${multiplier ? 'doubleur' : 'aspirateur'}-0`))
+    click('Utiliser')
+    expect(screen.getByRole('alert').textContent).toMatch(/carte.*dépasserait/)
+    expect(saved()).toEqual(before)
+    expect(screen.queryByRole('button', { name: 'Confirmer l’échec (dépassement)' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Arrêter et marquer' }).disabled).toBe(true)
+    view.unmount()
+    view = render(<App />)
+    expect(saved()).toEqual(before)
+    expect(saved().players[1].hand).toContain(multiplier ? 'doubleur' : 'aspirateur')
+    expect(screen.getByRole('button', { name: 'Arrêter et marquer' }).disabled).toBe(true)
+    seed(multiplier ? [1, 2] : [1, 2, 2, 3, 6])
+    click(multiplier ? 'Lancer les 2 dés' : 'Lancer les 5 dés')
+    expect(saved().diceTurn.total).toBe(multiplier ? 1100 : 100)
+    expect(screen.getByRole('button', { name: 'Arrêter et marquer' }).disabled).toBe(false)
+    seed(Array(30).fill(6))
+    click('Arrêter et marquer')
+    expect(saved().players[1].score).toBe(multiplier ? 99600 : 99800)
+    expect(saved().players[1].failedTurnsInRow).toBe(0)
+    expect(saved().currentPlayerIndex).toBe(0)
+  })
+
   it.each(['cent-mille', 'dix-mille-bonus'])('ouvre les dés Bonus %s sans l’ancien avertissement de règles non tranchées', mode => {
     mountGame(new Game(['Alice', 'Bob'], { mode }))
     expect(screen.getByRole('radio', { name: 'Virtuels' }).disabled).toBe(false)
