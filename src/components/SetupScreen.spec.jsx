@@ -152,4 +152,13 @@ describe('SetupScreen', () => {
       '✅ Prêt hors-ligne (36 / 37 illustrations en cache)'
     )
   })
+
+  it('renders Android APK download link', () => {
+    render(<SetupScreen onStart={vi.fn()} />)
+
+    const apkLink = screen.getByTestId('apk-download-link')
+    expect(apkLink.getAttribute('href')).toBe('./centmille.apk')
+    expect(apkLink.getAttribute('download')).toBe('centmille.apk')
+    expect(apkLink.textContent).toContain('Télécharger l’application Android (.apk)')
+  })
 })

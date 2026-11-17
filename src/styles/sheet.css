@@ -1323,3 +1323,28 @@ body {
   background: rgba(220, 252, 231, 0.7);
   border: 1px solid #86efac;
 }
+
+/* ---------- Téléchargement APK Android ---------- */
+.apk-download {
+  margin-top: 0.9rem;
+  text-align: center;
+}
+
+.apk-download__link {
+  display: inline-block;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  font-family: 'Caveat', cursive;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid var(--rule);
+  text-decoration: none;
+}
+
+.apk-download__link:hover,
+.apk-download__link:focus-visible {
+  background: #ffffff;
+  border-color: var(--ink);
+}

@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.doubleface.centmille",
+      "sha256_cert_fingerprints": [
+        "3F:C6:D9:EF:B7:CB:7D:C8:49:CE:68:4E:EC:27:A7:6B:85:9B:10:68:AD:02:B0:A4:1C:46:CC:FD:23:EB:7C:17"
+      ]
+    }
+  }
+]

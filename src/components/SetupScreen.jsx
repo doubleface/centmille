@@ -141,6 +141,16 @@ export const SetupScreen = ({ onStart, preloadStatus = null }) => {
             : `📥 Mise en cache hors-ligne : ${preloadStatus.processed} / ${preloadStatus.total} cartes…`}
         </div>
       ) : null}
+      <div className="apk-download">
+        <a
+          href="./centmille.apk"
+          download="centmille.apk"
+          className="apk-download__link"
+          data-testid="apk-download-link"
+        >
+          🤖 Télécharger l’application Android (.apk)
+        </a>
+      </div>
     </section>
   )
 }
