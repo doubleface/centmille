@@ -63,7 +63,7 @@ function resolveRevealContent(event, modeConfig = null) {
         title: '🪃 Boomerang !',
         subtitle: `${event.player} renvoie l'effet à ${event.attacker} !`,
         emoji: card?.emoji ?? '🪃',
-        image: card?.image ?? '/cards/boomerang.jpg',
+        image: card?.image ?? './cards/boomerang.jpg',
         description: targetCard
           ? `L'effet de « ${targetCard.name} » est renvoyé directement sur son lanceur ${event.attacker} !`
           : (descs.fullDescription || 'Effet renvoyé !'),
@@ -156,7 +156,7 @@ function resolveRevealContent(event, modeConfig = null) {
         title: '💣 BOOM ! La Bombe a explosé !',
         subtitle: `${event.player} subit la déflagration !`,
         emoji: bombCard?.emoji ?? '💣',
-        image: bombCard?.image ?? '/cards/bombe.jpg',
+        image: bombCard?.image ?? './cards/bombe.jpg',
         description: `La bombe a explosé sur ${event.player} qui chute de ${event.from} à ${event.to} points !`,
       }
     }
@@ -166,7 +166,7 @@ function resolveRevealContent(event, modeConfig = null) {
         title: '📦 Malédiction de Pandore !',
         subtitle: `${event.player} est maudit !`,
         emoji: '🧿',
-        image: pandoraCard?.image ?? '/cards/pandore.jpg',
+        image: pandoraCard?.image ?? './cards/pandore.jpg',
         description: `Pas de chance ! La Boîte de Pandore s'est retournée contre ${event.player} qui reçoit le statut Malédiction pour son prochain tour !`,
       }
     }
@@ -265,7 +265,7 @@ export function RevealModal({
 
             <div className="reveal-card__media">
               <CardThumbnail
-                image="/cards/architecte.jpg"
+                image="./cards/architecte.jpg"
                 alt="Architecte"
                 emoji="🏗️"
               />

@@ -79,7 +79,7 @@ describe('cardsCatalog', () => {
       expect(validActivations.has(card.activation)).toBe(true)
       expect(typeof card.isOffensive).toBe('boolean')
       expect(card.isOffensive).toBe(offensiveIds.has(card.id))
-      expect(card.image).toBe(`/cards/${card.id}.jpg`)
+      expect(card.image).toBe(`./cards/${card.id}.jpg`)
       expect(card.shortDescription.length).toBeGreaterThan(5)
       expect(card.fullDescription.length).toBeGreaterThan(15)
       expect(typeof card.inDeck).toBe('boolean')
