@@ -2,6 +2,11 @@ import React, { useState } from 'react'
 
 const MIN_PLAYERS = 2
 
+export const isStandaloneApp = () =>
+  document.referrer.startsWith('android-app://') ||
+  window.navigator.standalone === true ||
+  Boolean(window.matchMedia?.('(display-mode: standalone)').matches)
+
 export const SetupScreen = ({ onStart, preloadStatus = null }) => {
   const [playerNames, setPlayerNames] = useState(['Joueur 1', 'Joueur 2'])
   const [mode, setMode] = useState('quick-10k')
@@ -141,16 +146,18 @@ export const SetupScreen = ({ onStart, preloadStatus = null }) => {
             : `📥 Mise en cache hors-ligne : ${preloadStatus.processed} / ${preloadStatus.total} cartes…`}
         </div>
       ) : null}
-      <div className="apk-download">
-        <a
-          href="./centmille.apk"
-          download="centmille.apk"
-          className="apk-download__link"
-          data-testid="apk-download-link"
-        >
-          🤖 Télécharger l’application Android (.apk)
-        </a>
-      </div>
+      {!isStandaloneApp() ? (
+        <div className="apk-download">
+          <a
+            href="./centmille.apk"
+            download="centmille.apk"
+            className="apk-download__link"
+            data-testid="apk-download-link"
+          >
+            🤖 Télécharger l’application Android (.apk)
+          </a>
+        </div>
+      ) : null}
     </section>
   )
 }

@@ -161,4 +161,51 @@ describe('SetupScreen', () => {
     expect(apkLink.getAttribute('download')).toBe('centmille.apk')
     expect(apkLink.textContent).toContain('Télécharger l’application Android (.apk)')
   })
+
+  it('hides Android APK download link when running inside Android TWA or standalone app', () => {
+    const originalReferrer = Object.getOwnPropertyDescriptor(document, 'referrer')
+    const originalStandalone = Object.getOwnPropertyDescriptor(window.navigator, 'standalone')
+    const originalMatchMedia = Object.getOwnPropertyDescriptor(window, 'matchMedia')
+
+    try {
+      Object.defineProperty(document, 'referrer', {
+        value: 'android-app://io.github.doubleface.centmille',
+        configurable: true,
+      })
+      const { rerender } = render(<SetupScreen onStart={vi.fn()} />)
+      expect(screen.queryByTestId('apk-download-link')).toBeNull()
+
+      Object.defineProperty(document, 'referrer', { value: '', configurable: true })
+      Object.defineProperty(window.navigator, 'standalone', { value: true, configurable: true })
+      rerender(<SetupScreen onStart={vi.fn()} />)
+      expect(screen.queryByTestId('apk-download-link')).toBeNull()
+
+      Object.defineProperty(window.navigator, 'standalone', { value: false, configurable: true })
+      Object.defineProperty(window, 'matchMedia', {
+        value: () => ({ matches: true }),
+        configurable: true,
+      })
+      rerender(<SetupScreen onStart={vi.fn()} />)
+      expect(screen.queryByTestId('apk-download-link')).toBeNull()
+
+      Object.defineProperty(window, 'matchMedia', {
+        value: () => ({ matches: false }),
+        configurable: true,
+      })
+      rerender(<SetupScreen onStart={vi.fn()} />)
+      expect(screen.queryByTestId('apk-download-link')).not.toBeNull()
+    } finally {
+      if (originalReferrer) Object.defineProperty(document, 'referrer', originalReferrer)
+      if (originalStandalone) {
+        Object.defineProperty(window.navigator, 'standalone', originalStandalone)
+      } else {
+        delete window.navigator.standalone
+      }
+      if (originalMatchMedia) {
+        Object.defineProperty(window, 'matchMedia', originalMatchMedia)
+      } else {
+        delete window.matchMedia
+      }
+    }
+  })
 })

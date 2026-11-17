@@ -1348,3 +1348,9 @@ body {
   background: #ffffff;
   border-color: var(--ink);
 }
+
+@media (display-mode: standalone) {
+  .apk-download {
+    display: none;
+  }
+}
