@@ -1,5 +1,5 @@
 const CACHE_NAME = 'centmille-v9'
-const CORE_ASSETS = ['./manifest.webmanifest', './icon.svg']
+const CORE_ASSETS = ['./manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png']
 const MATCH_OPTIONS = { ignoreSearch: true, ignoreVary: true }
 
 self.addEventListener('install', (event) => {
