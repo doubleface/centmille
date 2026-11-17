@@ -12,7 +12,7 @@ if ('serviceWorker' in navigator) {
   if ('caches' in window) {
     const initialHtml = `<!doctype html>\n${document.documentElement.outerHTML}`
     caches
-      .open('centmille-v8')
+      .open('centmille-v9')
       .then((cache) =>
         cache.put(
           './',
